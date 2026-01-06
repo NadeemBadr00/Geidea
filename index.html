@@ -1,210 +1,243 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geidea Ultimate Tester</title>
+    <title>Geidea System Diagnostics</title>
     
-    <!-- مكتبة Geidea JS -->
+    <!-- مكتبة Geidea الرسمية -->
     <script src="https://ksamerchant.geidea.net/payment-intent/online/v1/geidea-checkout.min.js"></script>
     
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 950px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); padding: 25px; }
-        h1 { color: #00d082; text-align: center; margin-bottom: 30px; }
+        :root { --bg: #1e1e1e; --term-bg: #000; --text: #e0e0e0; --green: #00ff00; --red: #ff4444; --yellow: #ffff00; --blue: #4488ff; }
+        body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'Monaco', monospace; margin: 0; padding: 20px; font-size: 14px; }
         
-        .control-group { margin-bottom: 20px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; }
-        select, textarea, button, input { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ddd; font-size: 14px; box-sizing: border-box; }
-        textarea { height: 200px; font-family: monospace; direction: ltr; background: #fafafa; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { color: var(--green); text-align: center; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #333; padding-bottom: 10px; }
         
-        button { background: #00d082; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 16px; margin-top: 10px; }
-        button:hover { background: #00b06d; }
+        button { background: var(--green); color: black; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; border-radius: 5px; text-transform: uppercase; transition: 0.2s; margin-bottom: 20px; }
+        button:hover { background: #00cc00; }
+        button:disabled { background: #555; cursor: wait; }
+
+        .terminal-window { background: var(--term-bg); border: 2px solid #333; border-radius: 6px; padding: 15px; height: 600px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
         
-        .response-box { background: #2d2d2d; color: #76e094; padding: 15px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; font-family: monospace; direction: ltr; min-height: 100px; margin-top: 10px; }
+        .log-entry { margin-bottom: 8px; border-bottom: 1px dashed #333; padding-bottom: 5px; }
+        .log-time { color: #666; margin-right: 10px; }
+        .log-op { color: var(--blue); font-weight: bold; display: inline-block; width: 220px; }
+        .status-ok { color: var(--green); font-weight: bold; }
+        .status-fail { color: var(--red); font-weight: bold; }
+        .status-warn { color: var(--yellow); }
         
-        .status-tag { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 5px; }
-        .success { background: #d4edda; color: #155724; }
-        .fail { background: #f8d7da; color: #721c24; }
+        .details { margin-left: 70px; color: #888; font-size: 12px; white-space: pre-wrap; display: block; margin-top: 2px; }
+        .action-link { color: var(--blue); text-decoration: underline; cursor: pointer; margin-left: 10px; }
+        
+        #copyBtn { position: absolute; top: 10px; right: 10px; background: #333; color: white; padding: 5px 10px; font-size: 12px; width: auto; border: 1px solid #555; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>🛠️ Geidea API Tester</h1>
+        <h1>Geidea Integration Diagnostics</h1>
         
-        <div class="control-group">
-            <label>1. اختر العملية (Operation):</label>
-            <select id="opSelect" onchange="loadTemplate()">
-                <optgroup label="Checkout V2">
-                    <option value="createSession">Create Session (Pay)</option>
-                    <option value="createSessionSubscription">Create Session Subscription</option>
-                    <option value="saveCard">Save Card</option>
-                </optgroup>
-                <optgroup label="Pay By Link">
-                    <option value="createQuickLink">Create Quick Link</option>
-                    <option value="createPaymentLink">Create Invoice Link</option>
-                    <option value="getAllPaymentLinks">Get All Links</option>
-                    <option value="deletePaymentLink">Delete Link</option>
-                </optgroup>
-                <optgroup label="Meeza & QR">
-                    <option value="createMeezaQR">Create Meeza QR</option>
-                    <option value="meezaRequestToPay">Request to Pay (Wallet)</option>
-                </optgroup>
-                <optgroup label="Direct API & Actions">
-                    <option value="capture">Capture (تحصيل)</option>
-                    <option value="void">Void (إلغاء)</option>
-                    <option value="refund">Refund (استرجاع)</option>
-                    <option value="fetchOrderById">Get Order Details</option>
-                </optgroup>
-                <optgroup label="Subscription Management">
-                    <option value="createSubscription">Create Subscription</option>
-                    <option value="getSubscription">Get Subscription Details</option>
-                    <option value="cancelSubscription">Cancel Subscription</option>
-                </optgroup>
-            </select>
-        </div>
-
-        <div class="control-group">
-            <label>2. بيانات الطلب (Payload):</label>
-            <textarea id="payloadJson"></textarea>
-        </div>
-
-        <button onclick="sendRequest()" id="sendBtn">🚀 تنفيذ الطلب</button>
-
-        <div class="control-group" style="margin-top: 30px;">
-            <label>3. استجابة السيرفر (Response):</label>
-            <div id="statusTag"></div>
-            <div id="responseBox" class="response-box">// النتيجة ستظهر هنا...</div>
-        </div>
+        <button id="startBtn" onclick="runFullDiagnostics()">⚡ START ALL TESTS (فحص شامل)</button>
         
-        <button id="payBtn" style="display:none; background: #007bff;" onclick="openCheckout()">💳 فتح نافذة الدفع</button>
+        <div class="terminal-window">
+            <button id="copyBtn" onclick="copyLogs()">Copy Logs</button>
+            <div id="terminalOutput">
+                <div class="log-entry">> Ready to start. Click the button above...</div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // قوالب جاهزة لتسهيل التجربة
-        const TEMPLATES = {
-            createSession: {
-                amount: 100,
-                currency: "SAR",
-                paymentOperation: "Pay",
-                appearance: { uiMode: "modal" },
-                customer: { email: "test@geidea.com" }
+        // قائمة العمليات التي سيتم اختبارها
+        const OPERATIONS = [
+            { 
+                id: 'createSession', 
+                name: 'Checkout V2 Session', 
+                payload: { 
+                    amount: 100, currency: "SAR", paymentOperation: "Pay", 
+                    appearance: { uiMode: "modal" }, customer: { email: "test@test.com" } 
+                },
+                checkWindow: true // هل هذا الرابط يفتح نافذة؟
             },
-            createSessionSubscription: {
-                amount: 150,
-                currency: "SAR",
-                subscriptionId: "ضع_ID_الاشتراك_هنا"
+            { 
+                id: 'createQuickLink', 
+                name: 'Quick Payment Link', 
+                payload: { amount: 150, currency: "SAR", customer: { name: "Test User", phoneNumber: "500000000" } }
             },
-            saveCard: {
-                currency: "SAR"
+            { 
+                id: 'createPaymentLink', 
+                name: 'Invoice Payment Link', 
+                payload: { 
+                    amount: 200, currency: "SAR", 
+                    customer: { name: "Test Invoice", email: "inv@test.com" },
+                    eInvoiceDetails: { subtotal: 200, grandTotal: 200, extraChargesType: "Amount", invoiceDiscountType: "Amount" }
+                }
             },
-            createQuickLink: {
-                amount: 50,
-                currency: "SAR",
-                customer: { name: "Client", phoneNumber: "500000000" }
+            { 
+                id: 'createMeezaQR', 
+                name: 'Meeza QR Code', 
+                payload: { 
+                    sessionId: "AUTO", // سيتم ملؤه من الاختبار الأول
+                    customerEmail: "qr@test.com", customerPhoneCountryCode: "+20", source: "HPP" 
+                }
             },
-            createMeezaQR: {
-                // المفتاح العام سيتم إضافته تلقائياً من السيرفر
-                sessionId: "يجب_انشاء_جلسة_اولا",
-                customerEmail: "client@test.com",
-                customerPhoneCountryCode: "+20",
-                source: "HPP"
+            { 
+                id: 'saveCard', 
+                name: 'Save Card (Tokenization)', 
+                payload: { currency: "SAR" }
             },
-            refund: {
-                orderId: "ضع_رقم_الطلب_هنا",
-                refundAmount: 10.00,
-                currency: "SAR"
-            },
-            fetchOrderById: {
-                pathParams: { orderId: "ضع_رقم_الطلب_هنا" }
-            },
-            deletePaymentLink: {
-                pathParams: { paymentIntentId: "ضع_الرقم_هنا" }
-            },
-            createSubscription: {
-                recurringPaymentAmount: 100,
-                currency: "SAR",
-                cycleInterval: "month",
-                cycleFrequency: 12,
-                typeOfPayment: "RecurringPayment",
-                isFirstPmtPBL: true, // true = يرسل رابط للدفع الأول
-                customerRequest: { email: "sub@test.com" }
+            { 
+                id: 'createSubscription', 
+                name: 'Create Subscription', 
+                payload: { 
+                    recurringPaymentAmount: 50, currency: "SAR", cycleInterval: "month", cycleFrequency: 12, 
+                    typeOfPayment: "RecurringPayment", isFirstPmtPBL: false, customerRequest: { email: "sub@test.com" } 
+                }
             }
-        };
+        ];
 
-        let lastResponse = null;
+        let logsText = "";
+        let lastSessionId = null; // لتمريره لاختبار Meeza
 
-        function loadTemplate() {
-            const op = document.getElementById('opSelect').value;
-            const data = TEMPLATES[op] || { note: "أدخل البيانات حسب التوثيق" };
-            document.getElementById('payloadJson').value = JSON.stringify(data, null, 2);
-            document.getElementById('payBtn').style.display = 'none';
+        function log(message, type = 'info', details = null) {
+            const term = document.getElementById('terminalOutput');
+            const time = new Date().toLocaleTimeString();
+            let colorClass = '';
+            
+            if (type === 'success') colorClass = 'status-ok';
+            else if (type === 'error') colorClass = 'status-fail';
+            else if (type === 'warn') colorClass = 'status-warn';
+
+            let html = `<div class="log-entry">
+                <span class="log-time">[${time}]</span>
+                <span class="${colorClass}">${message}</span>`;
+            
+            if (details) {
+                html += `<span class="details">${details}</span>`;
+            }
+            html += `</div>`;
+
+            term.innerHTML += html;
+            term.scrollTop = term.scrollHeight;
+            
+            // حفظ للنص القابل للنسخ
+            logsText += `[${time}] ${message}\n${details ? details + '\n' : ''}`;
         }
 
-        async function sendRequest() {
-            const btn = document.getElementById('sendBtn');
-            const box = document.getElementById('responseBox');
-            const statusTag = document.getElementById('statusTag');
-            const op = document.getElementById('opSelect').value;
-
+        async function runFullDiagnostics() {
+            const btn = document.getElementById('startBtn');
+            const term = document.getElementById('terminalOutput');
+            
             btn.disabled = true;
-            btn.innerText = "جاري الاتصال...";
-            box.innerText = "Waiting...";
-            statusTag.innerHTML = "";
+            term.innerHTML = "";
+            logsText = "";
+            
+            log("🚀 Starting Full Diagnostic Sequence...", "warn");
+            log(`ℹ️ Total Tests: ${OPERATIONS.length}`, "info");
+            log("---------------------------------------------------");
+
+            // التحقق من مكتبة JS
+            if (typeof GeideaCheckout === 'undefined') {
+                log("❌ CRITICAL: Geidea JS Library NOT loaded! AdBlock?", "error");
+            } else {
+                log("✅ Geidea JS Library Loaded.", "success");
+            }
+
+            for (let op of OPERATIONS) {
+                await runSingleTest(op);
+                await new Promise(r => setTimeout(r, 1000)); // تأخير بسيط لعدم الضغط
+            }
+
+            log("---------------------------------------------------");
+            log("🏁 Diagnostic Complete.", "warn");
+            btn.disabled = false;
+        }
+
+        async function runSingleTest(op) {
+            log(`🔄 Testing: ${op.name} [${op.id}]...`, "info");
+
+            // تحديث البيانات ديناميكياً
+            let currentPayload = { ...op.payload };
+            if (op.id === 'createMeezaQR' && lastSessionId) {
+                currentPayload.sessionId = lastSessionId;
+                log(`   -> Using SessionID from previous test: ${lastSessionId.substring(0, 8)}...`, "warn");
+            } else if (op.id === 'createMeezaQR' && !lastSessionId) {
+                log(`   -> Skipping Meeza QR (No Session ID available from previous tests)`, "error");
+                return;
+            }
 
             try {
-                const payload = JSON.parse(document.getElementById('payloadJson').value);
-                
                 const res = await fetch('/.netlify/functions/create-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ operation: op, payload: payload })
+                    body: JSON.stringify({ operation: op.id, payload: currentPayload })
                 });
 
                 const data = await res.json();
-                lastResponse = data;
+                const status = data._statusCode || res.status;
 
-                const code = data._statusCode || 200;
-                const isSuccess = code >= 200 && code < 300;
-                
-                statusTag.innerHTML = `<span class="status-tag ${isSuccess ? 'success' : 'fail'}">Status: ${code}</span>`;
-                box.innerText = JSON.stringify(data, null, 2);
+                if (status >= 200 && status < 300) {
+                    // نجاح
+                    let detailMsg = `Status: ${status} OK`;
+                    
+                    // استخراج ID وحفظه
+                    const sessId = data.session?.id || data.id;
+                    if (sessId && op.id === 'createSession') {
+                        lastSessionId = sessId;
+                        detailMsg += `\n🆔 Session ID Received: ${sessId}`;
+                        
+                        // اختبار إمكانية فتح النافذة
+                        if (op.checkWindow) {
+                            detailMsg += `\n✅ Payment Window: READY (Can be opened)`;
+                            // إضافة زر للتجربة اليدوية
+                            setTimeout(() => {
+                                const btnId = `btn-${sessId.substring(0,8)}`;
+                                const term = document.getElementById('terminalOutput');
+                                term.lastElementChild.innerHTML += ` <button id="${btnId}" style="width:auto; padding:2px 10px; font-size:10px; margin:0; display:inline;" onclick="openTestWindow('${sessId}')">Test Window</button>`;
+                            }, 100);
+                        }
+                    }
 
-                // إظهار زر الدفع إذا كان الرد يحتوي على Session ID
-                if (isSuccess && (data.session?.id || data.id) && op.includes('Session')) {
-                    document.getElementById('payBtn').style.display = 'block';
+                    // التحقق من QR Code
+                    if (data.image && op.id === 'createMeezaQR') {
+                        detailMsg += `\n✅ QR Image Generated (Base64 received)`;
+                    }
+
+                    log(`✅ ${op.name}: SUCCESS`, "success", detailMsg);
+
                 } else {
-                    document.getElementById('payBtn').style.display = 'none';
+                    // فشل من Geidea
+                    let errorMsg = data.detailedResponseMessage || data.responseMessage || data.title || "Unknown Error";
+                    log(`❌ ${op.name}: FAILED (${status})`, "error", `Server Msg: ${errorMsg}\nPayload: ${JSON.stringify(currentPayload)}`);
                 }
 
             } catch (err) {
-                statusTag.innerHTML = `<span class="status-tag fail">Client Error</span>`;
-                box.innerText = err.message;
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "🚀 تنفيذ الطلب";
+                log(`❌ ${op.name}: NETWORK ERROR`, "error", err.message);
             }
         }
 
-        function openCheckout() {
-            if (!lastResponse) return;
-            const sessionId = lastResponse.session?.id || lastResponse.id;
-            
-            if (typeof GeideaCheckout !== 'undefined' && sessionId) {
-                const payment = new GeideaCheckout(
-                    s => alert("Success: " + JSON.stringify(s)),
-                    e => alert("Error: " + JSON.stringify(e)),
-                    () => console.log("Cancel")
-                );
-                payment.startPayment(sessionId);
-            } else {
-                alert("Session ID missing or Library not loaded.");
+        function openTestWindow(sessionId) {
+            if (typeof GeideaCheckout === 'undefined') {
+                alert("المكتبة غير محملة!");
+                return;
             }
+            const payment = new GeideaCheckout(
+                s => console.log(s), 
+                e => console.error(e), 
+                () => console.log("Cancel")
+            );
+            payment.startPayment(sessionId);
         }
 
-        // تحميل القالب الافتراضي عند البدء
-        loadTemplate();
+        function copyLogs() {
+            navigator.clipboard.writeText(logsText).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.innerText = "Copied!";
+                setTimeout(() => btn.innerText = "Copy Logs", 2000);
+            });
+        }
     </script>
 </body>
 </html>
