@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إتمام الدفع الآمن</title>
     
-    <!-- مكتبة Geidea -->
-    <script src="https://ksamerchant.geidea.net/payment-intent/online/v1/geidea-checkout.min.js"></script>
+    <!-- 
+      تعديل هام: استدعاء المكتبة من الملف المحلي بدلاً من الرابط الخارجي
+      تأكد أن ملف geideaCheckout.min.js موجود في نفس المجلد بجوار index.html
+    -->
+    <script src="geideaCheckout.min.js"></script>
     
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f8f9fa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
@@ -38,18 +41,24 @@
     </div>
 
     <script>
+        // التحقق من تحميل المكتبة المحلية عند فتح الصفحة
+        window.onload = function() {
+            if (typeof GeideaCheckout === 'undefined') {
+                document.getElementById('message').innerHTML = '<span class="error">خطأ: لم يتم العثور على ملف geideaCheckout.min.js<br>تأكد من رفعه بجوار ملف index.html</span>';
+                document.getElementById('payBtn').disabled = true;
+            }
+        };
+
         async function startPayment() {
             const btn = document.getElementById('payBtn');
             const msg = document.getElementById('message');
             
-            // تعطيل الزر أثناء التحميل
             btn.disabled = true;
             btn.innerText = "جاري الاتصال الآمن...";
             msg.innerText = "";
 
             try {
-                // 1. الاتصال بالباك إند (Router) لطلب جلسة دفع
-                // نرسل operation: 'createSession' لأن الباك إند لدينا الآن هو موجه (Router)
+                // استخدام الباك إند الموجه (Router)
                 const response = await fetch('/.netlify/functions/create-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -60,14 +69,13 @@
                             currency: "SAR",
                             paymentOperation: "Pay",
                             appearance: { uiMode: "modal" },
-                            customer: { email: "customer@example.com" } // يمكن تغييرها أو جلبها من نموذج
+                            customer: { email: "customer@example.com" }
                         }
                     })
                 });
 
                 const data = await response.json();
 
-                // التحقق من نجاح الطلب
                 if (!response.ok || (data._statusCode && data._statusCode >= 400)) {
                     throw new Error(data.detailedResponseMessage || "فشل الاتصال بمزود الدفع");
                 }
@@ -78,13 +86,12 @@
                     throw new Error("لم يتم استلام رقم الجلسة (Session ID)");
                 }
 
-                // 2. فتح نافذة الدفع
                 if (typeof GeideaCheckout !== 'undefined') {
                     const payment = new GeideaCheckout(onSuccess, onError, onCancel);
                     payment.startPayment(sessionId);
                     btn.innerText = "أكمل الدفع في النافذة...";
                 } else {
-                    throw new Error("مكتبة الدفع لم تتحمل. تأكد من اتصال الإنترنت.");
+                    throw new Error("ملف المكتبة المحلية غير محمل.");
                 }
 
             } catch (err) {
@@ -95,13 +102,10 @@
             }
         }
 
-        // دوال التعامل مع نتيجة الدفع
         function onSuccess(data) {
             document.getElementById('message').innerHTML = '<span class="success">تم الدفع بنجاح! ✅</span>';
             document.getElementById('payBtn').innerText = "تمت العملية";
             console.log("Success:", data);
-            // هنا يمكنك توجيه المستخدم لصفحة "شكراً لك"
-            // window.location.href = "/success.html";
         }
 
         function onError(data) {
