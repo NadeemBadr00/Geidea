@@ -78,7 +78,7 @@
                 id: 'createPaymentLink', 
                 name: 'Invoice Payment Link', 
                 payload: { 
-                    amount: 200, 
+                    amount: 0, 
                     currency: "SAR", 
                     customer: { 
                         name: "KSA Invoice", 
@@ -91,16 +91,16 @@
                         {
                             item: "Test Product",
                             description: "Diagnostics Test Item",
-                            price: 200,
+                            price: 0,
                             quantity: 1,
-                            total: 200,
+                            total: 0,
                             currency: "SAR"
                         }
                     ],
                     eInvoiceDetails: { 
                         // الآن يجب أن تتطابق المجاميع مع قيمة المنتج (200)
-                        subtotal: 200, 
-                        grandTotal: 200, 
+                        subtotal: 0, 
+                        grandTotal: 0, 
                         extraChargesType: "Amount", 
                         invoiceDiscountType: "Amount" 
                     }
