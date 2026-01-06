@@ -1,4 +1,5 @@
 const https = require('https');
+const crypto = require('crypto'); // مكتبة لتوليد رقم طلب عشوائي
 
 exports.handler = async (event, context) => {
   // 1. إعدادات CORS
@@ -21,44 +22,48 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // 2. قراءة المفاتيح الجديدة (Public Key و Password)
+    // 2. قراءة المفاتيح
     const publicKey = process.env.GEIDEA_PUBLIC_KEY;
     const apiPassword = process.env.GEIDEA_API_PASSWORD;
 
-    // التحقق من وجود المفاتيح
     if (!publicKey || !apiPassword) {
-      console.error('Missing configuration: Public Key or API Password not found.');
-      throw new Error('خطأ في إعدادات السيرفر: مفاتيح الربط غير موجودة');
+      throw new Error('مفاتيح الربط غير موجودة في إعدادات Netlify');
     }
 
-    // 3. إنشاء كود المصادقة (Basic Auth)
-    // Geidea تطلب: Basic Base64(PublicKey:Password)
+    // 3. التجهيز للمصادقة
     const authString = `${publicKey}:${apiPassword}`;
     const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
 
-    // 4. قراءة البيانات من الفرونت
+    // 4. قراءة البيانات وتجهيز Order ID (الحل لمشكلة 502)
     const data = JSON.parse(event.body);
-    const amount = data.amount || 100;
-    const currency = data.currency || 'SAR';
+    
+    // تحويل المبلغ لرقم صحيح (تجنباً لأي مشاكل في الصيغة)
+    const amount = parseFloat(data.amount) || 100;
+    
+    // تحديد العملة: إذا لم يحددها الفرونت إند، نستخدم الجنيه المصري
+    const currency = data.currency || 'EGP'; 
+    
+    // توليد رقم طلب فريد (مهم جداً لـ Geidea)
+    const orderId = data.orderId || crypto.randomUUID();
 
-    console.log('جاري الاتصال بـ Geidea...', { amount, currency });
+    console.log(`بدء طلب دفع جديد: ${amount} ${currency} | OrderID: ${orderId}`);
 
-    // 5. إعداد الطلب
+    // 5. جسم الطلب (Payload)
+    // أضفنا orderId لأنه إجباري في بعض التحديثات
     const requestData = JSON.stringify({
       amount: amount,
       currency: currency,
+      orderId: orderId,
       timestamp: new Date().toISOString()
-      // أضف هنا callbackUrl إذا تطلبه الأمر
-      // callbackUrl: "https://yoursite.com/callback"
     });
 
     const options = {
       hostname: 'api.geidea.net',
-      path: '/pgw/api/v1/direct/session', // تأكد أن هذا هو المسار الصحيح لحسابك
+      path: '/pgw/api/v1/direct/session',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': authHeader, // استخدام الهيدر الذي أنشأناه
+        'Authorization': authHeader,
         'Content-Length': Buffer.byteLength(requestData)
       }
     };
@@ -68,12 +73,11 @@ exports.handler = async (event, context) => {
         let body = '';
         res.on('data', (chunk) => (body += chunk));
         res.on('end', () => {
-          // التحقق من نجاح الطلب من وجهة نظر HTTP
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve(JSON.parse(body));
           } else {
-            // إذا ردت Geidea بخطأ، نعرضه
-            console.error(`Geidea Error (${res.statusCode}):`, body);
+            console.error(`خطأ من جييديا (${res.statusCode}):`, body);
+            // نمرر الخطأ كما هو لنفهمه
             reject({ statusCode: res.statusCode, message: body });
           }
         });
@@ -95,26 +99,20 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('فشل إنشاء الجلسة:', error);
+    console.error('فشل العملية:', error);
     
-    // محاولة استخراج رسالة خطأ مفيدة
-    let errorMessage = 'فشل الاتصال بالسيرفر';
-    let errorDetails = error.message;
-
-    // إذا كان الخطأ قادماً من Geidea (عبارة عن JSON) نحاول قراءته
+    // تنظيف رسالة الخطأ للعرض
+    let details = error.message;
     try {
-        if (typeof error.message === 'string' && error.message.startsWith('{')) {
-            const parsed = JSON.parse(error.message);
-            errorDetails = parsed.detail || parsed.title || error.message;
-        }
-    } catch (e) {}
+        if (details.includes('DOCTYPE')) details = 'Geidea Server Error (Bad Gateway)';
+    } catch(e) {}
 
     return {
-      statusCode: 500,
+      statusCode: error.statusCode || 500,
       headers,
       body: JSON.stringify({
-        error: errorMessage,
-        details: errorDetails
+        error: 'فشل إنشاء الجلسة',
+        details: details
       })
     };
   }
