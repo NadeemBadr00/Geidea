@@ -377,7 +377,7 @@
         <!-- خانة إدخال المبلغ -->
         <div class="mb-4">
             <label class="block text-gray-700 text-sm font-bold mb-2 text-right">المبلغ المراد شحنه (ر.س)</label>
-            <input type="number" id="chargeAmount" value="100" class="shadow appearance-none border rounded w-full py-3 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right font-bold text-lg" placeholder="أدخل المبلغ هنا" min="1" step="0.01">
+            <input type="number" id="chargeAmount" class="shadow appearance-none border rounded w-full py-3 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right font-bold text-lg" placeholder="أدخل المبلغ هنا (مثلاً 100)" min="1" step="0.01">
         </div>
 
         <!-- زر الشحن -->
@@ -526,7 +526,7 @@
             }
         }
 
-        // --- 4. عملية الدفع (مطابقة للكود القديم) ---
+        // --- 4. عملية الدفع (باستخدام الرابط الجديد) ---
         document.getElementById('payBtn').addEventListener('click', async () => {
             if(!currentUser) return;
             
@@ -545,7 +545,6 @@
             updateStatus(`جاري الاتصال ببوابة الدفع (${amount} SAR)...`, "blue");
 
             try {
-                // نفس هيكل البيانات الأصلي الذي كان يعمل معك
                 const requestPayload = {
                     operation: 'createSession',
                     payload: {
@@ -560,14 +559,15 @@
                     }
                 };
 
-                const response = await fetch('/.netlify/functions/create-payment-session', {
+                // استخدام الرابط الكامل الجديد الذي أرسلته
+                const response = await fetch('https://jocular-shortbread-17b12c.netlify.app/.netlify/functions/create-payment-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestPayload)
                 });
 
                 if (response.status === 404) {
-                    throw new Error("لم يتم العثور على دالة الدفع (تأكد من اسم الملف)");
+                    throw new Error("لم يتم العثور على رابط الدفع (404)");
                 }
 
                 const data = await response.json();
