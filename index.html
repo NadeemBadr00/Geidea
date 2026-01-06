@@ -3,157 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تجربة دفع جييديا (KSA)</title>
+    <title>Geidea All-in-One Tester</title>
+    
+    <!-- مكتبة جييديا -->
+    <script src="https://ksamerchant.geidea.net/payment-intent/online/v1/geidea-checkout.min.js"></script>
     
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f4f4f9; }
-        .card { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%; }
-        button { background-color: #00d082; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; font-weight: bold; margin-top: 10px; }
-        button:hover { background-color: #00a86b; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        #status { margin-top: 15px; font-size: 14px; color: #555; text-align: right; }
-        .error { color: red; font-weight: bold; }
-        .success { color: green; font-weight: bold; }
-        .script-status { font-size: 12px; color: #888; margin-bottom: 10px; }
+        :root { --primary: #00d082; --bg: #f4f6f8; --text: #333; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; direction: rtl; }
+        .container { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .full-width { grid-column: 1 / -1; }
+        h2 { margin-top: 0; border-bottom: 2px solid var(--primary); padding-bottom: 10px; font-size: 18px; }
+        
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        select, button, textarea, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 15px; font-family: monospace; box-sizing: border-box; }
+        textarea { height: 250px; resize: vertical; direction: ltr; }
+        
+        button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #ccc; }
+        
+        #responseArea { background: #1e1e1e; color: #00ff00; height: 300px; overflow: auto; padding: 10px; white-space: pre-wrap; direction: ltr; border-radius: 6px; }
+        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 10px; }
+        .status-200 { background: #d4edda; color: #155724; }
+        .status-error { background: #f8d7da; color: #721c24; }
+
+        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2>دفع إلكتروني (KSA)</h2>
-        <div id="scriptStatus" class="script-status">جاري تحميل مكتبة الدفع...</div>
-        <p>المبلغ: <strong>100.00 SAR</strong></p>
-        
-        <!-- الزر معطل افتراضياً حتى يتم تحميل المكتبة -->
-        <button id="payBtn" onclick="initiatePayment()" disabled>جارِ التحميل...</button>
-        
-        <div id="status"></div>
+    <div class="container">
+        <div class="card full-width">
+            <h1 style="text-align: center; color: var(--primary);">Geidea Integration Tester</h1>
+            <p style="text-align: center; color: #666;">اختر العملية، عدل البيانات، واضغط تنفيذ.</p>
+        </div>
+
+        <!-- قسم الإدخال -->
+        <div class="card">
+            <h2>1. إعداد الطلب</h2>
+            
+            <label>نوع العملية (Operation):</label>
+            <select id="operationSelect" onchange="loadTemplate()">
+                <optgroup label="Checkout & Payments">
+                    <option value="createSession">Create Session (Checkout V2)</option>
+                    <option value="createSessionSubscription">Create Session Subscription</option>
+                    <option value="saveCard">Save Card (Standalone)</option>
+                </optgroup>
+                <optgroup label="Pay By Link">
+                    <option value="createQuickLink">Create Quick Payment Link</option>
+                    <option value="createPaymentLink">Create Payment Link (Invoice)</option>
+                    <option value="getAllPaymentLinks">Get All Payment Links</option>
+                </optgroup>
+                <optgroup label="Meeza & QR">
+                    <option value="createMeezaQR">Create Meeza QR Code</option>
+                    <option value="meezaRequestToPay">Meeza Request To Pay</option>
+                </optgroup>
+                <optgroup label="Direct API Operations">
+                    <option value="refund">Refund (استرجاع)</option>
+                    <option value="capture">Capture (تحصيل)</option>
+                    <option value="void">Void (إلغاء)</option>
+                    <option value="getOrder">Get Order Details</option>
+                </optgroup>
+            </select>
+
+            <label>بيانات الطلب (JSON Payload):</label>
+            <textarea id="payloadInput"></textarea>
+
+            <button id="executeBtn" onclick="executeRequest()">🚀 تنفيذ الطلب</button>
+        </div>
+
+        <!-- قسم النتائج -->
+        <div class="card">
+            <h2>2. النتيجة (Server Response)</h2>
+            <div id="statusBadge" class="status-badge" style="display:none;"></div>
+            <div id="responseArea">// النتيجة ستظهر هنا...</div>
+            
+            <div id="actionArea" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; display: none;">
+                <label>إجراءات إضافية:</label>
+                <button id="openCheckoutBtn" onclick="openGeideaModal()" style="background: #2196F3;">فتح نافذة الدفع (Checkout)</button>
+            </div>
+        </div>
     </div>
 
-    <!-- سنقوم بتحميل السكربت برمجياً للتحكم في الأخطاء -->
     <script>
-        // روابط المكتبات المحتملة
-        const scripts = [
-            "https://ksamerchant.geidea.net/payment-intent/online/v1/geidea-checkout.min.js", // الرابط السعودي (الأرجح لمفاتيحك)
-            "https://www.geidea.net/online/checkout/geidea-checkout.min.js" // الرابط العام (احتياطي)
-        ];
-
-        let scriptLoaded = false;
-
-        function loadGeideaScript(index = 0) {
-            if (index >= scripts.length) {
-                document.getElementById('scriptStatus').innerHTML = "<span class='error'>فشل تحميل مكتبة Geidea من جميع المصادر.<br>يرجى تعطيل AdBlock أو التحقق من الإنترنت.</span>";
-                return;
+        // قوالب البيانات الجاهزة لكل عملية
+        const TEMPLATES = {
+            createSession: {
+                amount: 100,
+                currency: "SAR",
+                // merchantReferenceId: سيتم توليده تلقائياً في السيرفر إذا ترك فارغاً
+                appearance: { uiMode: "modal" },
+                customer: { email: "test@geidea.com" }
+            },
+            createQuickLink: {
+                amount: 150,
+                currency: "SAR",
+                customer: { name: "Ahmed", phoneNumber: "500000000" }
+            },
+            createMeezaQR: {
+                merchantPublicKey: "ضع_المفتاح_هنا", 
+                sessionId: "ضع_SessionID_هنا",
+                customerEmail: "customer@example.com",
+                customerPhoneCountryCode: "+20",
+                source: "HPP"
+            },
+            refund: {
+                orderId: "ضع_رقم_الطلب_هنا",
+                refundAmount: 10.00,
+                currency: "SAR"
+            },
+            getOrder: {
+                pathParams: { orderId: "ضع_رقم_الطلب_هنا" } // مثال لكيفية تمرير المعاملات في الرابط
             }
+        };
 
-            const src = scripts[index];
-            const script = document.createElement('script');
-            script.src = src;
-            script.async = true;
+        // تحميل القالب عند فتح الصفحة
+        window.onload = loadTemplate;
 
-            script.onload = () => {
-                console.log(`تم تحميل المكتبة بنجاح من: ${src}`);
-                if (typeof GeideaCheckout !== 'undefined') {
-                    scriptLoaded = true;
-                    document.getElementById('scriptStatus').innerHTML = "<span class='success'>تم تحميل نظام الدفع جاهز ✅</span>";
-                    document.getElementById('payBtn').disabled = false;
-                    document.getElementById('payBtn').innerText = "ادفع الآن";
-                } else {
-                    console.warn("المكتبة حملت لكن GeideaCheckout غير معرف. نجرب الرابط التالي...");
-                    loadGeideaScript(index + 1);
-                }
-            };
-
-            script.onerror = () => {
-                console.error(`فشل تحميل المكتبة من: ${src}`);
-                // تجربة الرابط التالي
-                loadGeideaScript(index + 1);
-            };
-
-            document.head.appendChild(script);
+        function loadTemplate() {
+            const op = document.getElementById('operationSelect').value;
+            const template = TEMPLATES[op] || { note: "قم بإدخال البيانات حسب التوثيق" };
+            document.getElementById('payloadInput').value = JSON.stringify(template, null, 2);
+            document.getElementById('actionArea').style.display = 'none';
+            document.getElementById('responseArea').innerText = '// جاهز للتنفيذ...';
+            document.getElementById('statusBadge').style.display = 'none';
         }
 
-        // بدء التحميل عند فتح الصفحة
-        loadGeideaScript();
+        let lastResponseData = null;
 
-        async function initiatePayment() {
-            const btn = document.getElementById('payBtn');
-            const status = document.getElementById('status');
+        async function executeRequest() {
+            const btn = document.getElementById('executeBtn');
+            const responseArea = document.getElementById('responseArea');
+            const statusBadge = document.getElementById('statusBadge');
+            const op = document.getElementById('operationSelect').value;
             
-            if (!scriptLoaded || typeof GeideaCheckout === 'undefined') {
-                status.innerText = "خطأ: المكتبة غير جاهزة.";
-                status.className = "error";
-                return;
-            }
-
             btn.disabled = true;
             btn.innerText = "جاري الاتصال...";
-            status.innerHTML = "";
-            status.className = "";
+            responseArea.innerText = "Loading...";
+            statusBadge.style.display = 'none';
 
             try {
-                console.log("جاري طلب الجلسة...");
-                const response = await fetch('/.netlify/functions/create-session', {
+                let payload = {};
+                try {
+                    payload = JSON.parse(document.getElementById('payloadInput').value);
+                } catch (e) {
+                    throw new Error("خطأ في صيغة JSON. تأكد من الأقواس والفواصل.");
+                }
+
+                const res = await fetch('/.netlify/functions/create-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        amount: 100, 
-                        currency: "SAR" 
+                    body: JSON.stringify({
+                        operation: op,
+                        payload: payload
                     })
                 });
 
-                const data = await response.json();
-                console.log("رد السيرفر:", data);
+                const data = await res.json();
+                lastResponseData = data;
 
-                if (!response.ok) {
-                    throw new Error(data.details || data.error || "فشل الاتصال بالسيرفر");
+                // عرض الحالة
+                const statusCode = data._statusCode || res.status;
+                statusBadge.innerText = `Status: ${statusCode}`;
+                statusBadge.className = `status-badge ${statusCode >= 200 && statusCode < 300 ? 'status-200' : 'status-error'}`;
+                statusBadge.style.display = 'inline-block';
+
+                responseArea.innerText = JSON.stringify(data, null, 2);
+
+                // إذا كانت العملية Create Session وناجحة، نظهر زر فتح النافذة
+                if (op === 'createSession' && (data.session || data.id)) {
+                    document.getElementById('actionArea').style.display = 'block';
+                } else {
+                    document.getElementById('actionArea').style.display = 'none';
                 }
 
-                let sessionId = null;
-                // البحث عن معرف الجلسة في كل الأماكن المحتملة
-                if (data.session && data.session.id) sessionId = data.session.id;
-                else if (data.id) sessionId = data.id;
-
-                if (!sessionId) {
-                    throw new Error("لم يتم استلام رقم الجلسة (Session ID)");
-                }
-
-                console.log("Session ID:", sessionId);
-                status.innerText = "جاري فتح نافذة الدفع...";
-
-                // فتح نافذة الدفع
-                const payment = new GeideaCheckout(onPaymentSuccess, onPaymentError, onPaymentCancel);
-                payment.startPayment(sessionId);
-                
-                btn.innerText = "ادفع الآن";
+            } catch (err) {
+                responseArea.innerText = "Error: " + err.message;
+                statusBadge.innerText = "Client Error";
+                statusBadge.className = "status-badge status-error";
+                statusBadge.style.display = 'inline-block';
+            } finally {
                 btn.disabled = false;
-
-            } catch (error) {
-                console.error("خطأ:", error);
-                status.innerText = "خطأ: " + error.message;
-                status.className = "error";
-                btn.disabled = false;
-                btn.innerText = "حاول مرة أخرى";
+                btn.innerText = "🚀 تنفيذ الطلب";
             }
         }
 
-        function onPaymentSuccess(data) {
-            console.log("Success:", data);
-            document.getElementById('status').innerText = "تمت عملية الدفع بنجاح! ✅";
-            document.getElementById('status').className = "success";
-        }
+        function openGeideaModal() {
+            if (!lastResponseData) return;
+            
+            const sessionId = lastResponseData.session?.id || lastResponseData.id;
+            if (!sessionId) {
+                alert("لا يوجد Session ID في الاستجابة الأخيرة");
+                return;
+            }
 
-        function onPaymentError(error) {
-            console.log("Error:", error);
-            document.getElementById('status').innerText = "فشلت عملية الدفع ❌";
-            document.getElementById('status').className = "error";
-        }
+            if (typeof GeideaCheckout === 'undefined') {
+                alert("مكتبة Geidea لم تتحمل. تأكد من تعطيل AdBlock.");
+                return;
+            }
 
-        function onPaymentCancel() {
-            console.log("Cancel");
-            document.getElementById('status').innerText = "تم إلغاء العملية";
+            const payment = new GeideaCheckout(
+                (s) => alert("نجاح! " + JSON.stringify(s)),
+                (e) => alert("فشل! " + JSON.stringify(e)),
+                () => console.log("إلغاء")
+            );
+            
+            payment.startPayment(sessionId);
         }
     </script>
-
 </body>
 </html>

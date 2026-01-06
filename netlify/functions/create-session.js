@@ -1,12 +1,53 @@
 const https = require('https');
 const crypto = require('crypto');
 
+// إعدادات الروابط (Endpoints) حسب التوثيق
+const ENDPOINTS = {
+  // --- Checkout V2 ---
+  'createSession': { path: '/payment-intent/api/v2/direct/session', method: 'POST', version: 'v2' },
+  'createSessionSubscription': { path: '/payment-intent/api/v2/direct/session-subscription', method: 'POST', version: 'v2' },
+  'saveCard': { path: '/payment-intent/api/v2/direct/session/saveCard', method: 'POST', version: 'v2' },
+  
+  // --- Pay By Link (V1) ---
+  'createQuickLink': { path: '/payment-intent/api/v1/direct/eInvoice/quick', method: 'POST', version: 'v2' }, // يتطلب توقيع
+  'createPaymentLink': { path: '/payment-intent/api/v1/direct/eInvoice', method: 'POST', version: 'v1' },
+  'getAllPaymentLinks': { path: '/payment-intent/api/v1/direct/eInvoice', method: 'GET', version: 'v1' },
+  'updatePaymentLink': { path: '/payment-intent/api/v1/direct/eInvoice', method: 'PUT', version: 'v1' },
+  
+  // --- Direct API (PGW) ---
+  'pay': { path: '/pgw/api/v2/direct/pay', method: 'POST', version: 'v1' },
+  'payToken': { path: '/pgw/api/v2/direct/pay/token', method: 'POST', version: 'v2' },
+  'capture': { path: '/pgw/api/v1/direct/capture', method: 'POST', version: 'v1' },
+  'void': { path: '/pgw/api/v3/direct/void', method: 'POST', version: 'v1' },
+  'refund': { path: '/pgw/api/v2/direct/refund', method: 'POST', version: 'v2' },
+  'cancelOrder': { path: '/pgw/api/v1/direct/cancel', method: 'POST', version: 'v1' },
+  'getOrder': { path: '/pgw/api/v1/direct/order', method: 'GET', version: 'v1' },
+  
+  // --- Authentication ---
+  'initiateAuth': { path: '/pgw/api/v6/direct/authenticate/initiate', method: 'POST', version: 'v1' },
+  'authenticatePayer': { path: '/pgw/api/v6/direct/authenticate/payer', method: 'POST', version: 'v1' },
+
+  // --- Subscriptions ---
+  'createSubscription': { path: '/subscriptions/api/v1/direct/subscription', method: 'POST', version: 'v2' },
+  
+  // --- Apple Pay ---
+  'applePay': { path: '/pgw/api/v2/direct/apple/pay', method: 'POST', version: 'v1' },
+
+  // --- Meeza QR (تمت الإضافة) ---
+  'createMeezaQR': { path: '/payment-intent/api/v2/meezaPayment/image/base64', method: 'POST', version: 'v1' },
+  'meezaRequestToPay': { path: '/meeza/api/v2/direct/transaction/requestToPay', method: 'POST', version: 'v1' }
+};
+
+// السيرفر الافتراضي
+const DEFAULT_HOSTNAME = 'api.ksamerchant.geidea.net';
+// سيرفر Meeza أحياناً يكون مختلفاً (api.merchant.geidea.net)، سنتعامل معه بذكاء إذا لزم الأمر
+// ولكن بناءً على التوثيق، سنستخدم نفس النطاق إلا إذا فشل
+
 exports.handler = async (event, context) => {
-  // 1. إعدادات CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'POST, GET, PUT, DELETE, OPTIONS'
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -14,84 +55,95 @@ exports.handler = async (event, context) => {
   }
 
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method Not Allowed' })
-    };
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
   try {
     const publicKey = process.env.GEIDEA_PUBLIC_KEY;
     const apiPassword = process.env.GEIDEA_API_PASSWORD;
 
-    if (!publicKey || !apiPassword) {
-      throw new Error('Missing Keys in Netlify Environment Variables');
-    }
+    if (!publicKey || !apiPassword) throw new Error('Missing Keys');
 
-    // تجهيز Basic Auth
-    // يقوم بدمج المفتاحين وتشفيرهما base64 كما في التوثيق
     const authString = `${publicKey}:${apiPassword}`;
     const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
 
-    const body = JSON.parse(event.body);
-    const amount = parseFloat(body.amount) || 100;
-    const currency = body.currency || 'SAR';
+    const incomingData = JSON.parse(event.body);
+    const operation = incomingData.operation || 'createSession';
+    const payload = incomingData.payload || {};
     
-    // توليد رقم مرجعي فريد
-    const merchantReferenceId = body.merchantReferenceId || `ORD-${crypto.randomUUID().substring(0, 15)}`;
-    
-    // تنسيق التاريخ (Timestamp)
-    // نستخدم ISO String لأنه المعيار الأكثر قبولاً
+    const endpointConfig = ENDPOINTS[operation];
+    if (!endpointConfig) throw new Error(`Unknown operation: ${operation}`);
+
     const timestamp = new Date().toISOString();
-
-    // ---------------------------------------------------------
-    // حساب التوقيع الإلكتروني (Signature) - V2 Requirement
-    // المعادلة القياسية: PublicKey + Amount (2 decimals) + Currency + MerchantReferenceId + Timestamp
-    // ---------------------------------------------------------
-    const amountStr = amount.toFixed(2); // لازم يكون رقمين عشريين بالضبط (مثلاً 100.00)
-    const dataToSign = `${publicKey}${amountStr}${currency}${merchantReferenceId}${timestamp}`;
+    const currency = payload.currency || 'SAR';
+    const amount = payload.amount ? parseFloat(payload.amount) : 0;
     
-    const signature = crypto.createHmac('sha256', apiPassword)
-                            .update(dataToSign)
-                            .digest('base64');
+    let merchantReferenceId = payload.merchantReferenceId;
+    if (!merchantReferenceId && operation === 'createSession') {
+        merchantReferenceId = `ORD-${crypto.randomUUID().substring(0, 15)}`;
+    }
 
-    const returnUrl = "https://geideaa.netlify.app/"; // رابط العودة لموقعك
-    const callbackUrl = "https://geideaa.netlify.app/";
+    let finalBody = { ...payload };
 
-    // تجهيز البيانات (Payload) لتتطابق تماماً مع مثال Documentation V2
-    const requestData = JSON.stringify({
-      amount: amount,
-      currency: currency,
-      timestamp: timestamp,
-      merchantReferenceId: merchantReferenceId,
-      signature: signature,
-      paymentOperation: "Pay",
-      appearance: {
-        uiMode: "modal" // كما في المثال
-      },
-      language: "en",
-      callbackUrl: callbackUrl,
-      returnUrl: returnUrl,
-      // بيانات العميل (إجبارية أحياناً في V2، نضع بيانات افتراضية إذا لم تتوفر)
-      customer: {
-        email: "customer@email.com",
-        phoneNumber: "+966500000000",
-        phoneCountryCode: "+966"
-      },
-      initiatedBy: "Internet" // كما في المثال
-    });
+    // منطق التوقيع (فقط للعمليات التي تتطلب V2 Signature)
+    if (endpointConfig.version === 'v2') {
+        finalBody.timestamp = timestamp;
+        let dataToSign = "";
 
-    console.log(`Sending V2 Request to Geidea:`, requestData);
+        if (operation === 'saveCard') {
+            dataToSign = `${publicKey}${currency}${timestamp}`;
+        } else if (operation === 'createSession' || operation === 'createQuickLink') {
+            dataToSign = `${publicKey}${amount.toFixed(2)}${currency}${merchantReferenceId}${timestamp}`;
+            finalBody.merchantReferenceId = merchantReferenceId;
+        } else if (operation === 'refund') {
+             dataToSign = `${publicKey}${amount.toFixed(2)}${currency}${payload.orderId || ''}${timestamp}`;
+        } else {
+            dataToSign = `${publicKey}${amount.toFixed(2)}${currency}${merchantReferenceId || ''}${timestamp}`;
+        }
+
+        const signature = crypto.createHmac('sha256', apiPassword).update(dataToSign).digest('base64');
+        finalBody.signature = signature;
+    }
+
+    // إعدادات افتراضية لـ Create Session
+    if (operation === 'createSession') {
+        finalBody.paymentOperation = finalBody.paymentOperation || "Pay";
+        finalBody.initiatedBy = finalBody.initiatedBy || "Internet";
+        finalBody.callbackUrl = finalBody.callbackUrl || "https://geideaa.netlify.app/";
+        finalBody.returnUrl = finalBody.returnUrl || "https://geideaa.netlify.app/";
+    }
+
+    const requestData = JSON.stringify(finalBody);
+    console.log(`[${operation}] Request:`, requestData);
+
+    let finalPath = endpointConfig.path;
+    if (payload.pathParams) {
+        Object.keys(payload.pathParams).forEach(key => {
+            finalPath = finalPath.replace(`{${key}}`, payload.pathParams[key]);
+        });
+    }
+
+    if (endpointConfig.method === 'GET' && payload.queryParams) {
+        const query = new URLSearchParams(payload.queryParams).toString();
+        finalPath += `?${query}`;
+    }
+
+    // تصحيح الرابط لـ Meeza إذا لزم الأمر (حسب التوثيق أحياناً يكون مختلف)
+    let hostname = DEFAULT_HOSTNAME;
+    if (operation.includes('Meeza') || operation.includes('meeza')) {
+        // إذا كان التوثيق يشير إلى نطاق مختلف لـ Meeza، يمكن تغييره هنا
+        // hostname = 'api.merchant.geidea.net'; 
+    }
 
     const options = {
-      hostname: 'api.ksamerchant.geidea.net',
-      path: '/payment-intent/api/v2/direct/session', // رابط V2
-      method: 'POST',
+      hostname: hostname,
+      path: finalPath,
+      method: endpointConfig.method,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': authHeader,
-        'Content-Length': Buffer.byteLength(requestData)
+        'Content-Length': endpointConfig.method !== 'GET' ? Buffer.byteLength(requestData) : 0,
+        'X-Correlation-ID': crypto.randomUUID()
       }
     };
 
@@ -100,21 +152,19 @@ exports.handler = async (event, context) => {
         let body = '';
         res.on('data', (chunk) => (body += chunk));
         res.on('end', () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            resolve(JSON.parse(body));
-          } else {
-            console.error(`Geidea V2 Error (${res.statusCode}):`, body);
-            reject({ statusCode: res.statusCode, message: body });
+          try {
+             const json = JSON.parse(body);
+             json._statusCode = res.statusCode; 
+             resolve(json);
+          } catch (e) {
+             resolve({ _statusCode: res.statusCode, rawBody: body });
           }
         });
       });
 
-      req.on('error', (err) => {
-        console.error('Network Error:', err);
-        reject(err);
-      });
+      req.on('error', (err) => reject(err));
 
-      req.write(requestData);
+      if (endpointConfig.method !== 'GET') req.write(requestData);
       req.end();
     });
 
@@ -125,22 +175,11 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('Function Error:', error);
-    
-    // محاولة تحسين رسالة الخطأ القادمة من Geidea
-    let errorDetail = error.message;
-    try {
-        const parsed = JSON.parse(error.message);
-        if(parsed.detailedResponseMessage) errorDetail = parsed.detailedResponseMessage;
-    } catch(e) {}
-
+    console.error('System Error:', error);
     return {
-      statusCode: error.statusCode || 500,
+      statusCode: 500,
       headers,
-      body: JSON.stringify({
-        error: 'فشل الاتصال بـ V2',
-        details: errorDetail
-      })
+      body: JSON.stringify({ error: 'Server Error', message: error.message })
     };
   }
 };
