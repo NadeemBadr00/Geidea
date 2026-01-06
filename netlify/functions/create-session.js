@@ -9,6 +9,7 @@ const ENDPOINTS = {
     host: 'api.ksamerchant.geidea.net', 
     sign: true 
   },
+  // ... باقي العمليات (يمكنك تركها كما هي في ملفك الأصلي) ...
   'pay': { path: '/pgw/api/v2/direct/pay', method: 'POST', host: 'api.geidea.ae' },
   'capture': { path: '/pgw/api/v1/direct/capture', method: 'POST', host: 'api.ksamerchant.geidea.net' },
   'void': { path: '/pgw/api/v3/direct/void', method: 'POST', host: 'api.ksamerchant.geidea.net' },
@@ -26,61 +27,56 @@ exports.handler = async (event, context) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
 
   // ---------------------------------------------------------
-  // 2. صفحة التشخيص (GET) - بتظهر لما ترجع من البنك
+  // 2. (GET) صفحة النتيجة - تظهر للمستخدم في المتصفح بعد الدفع
   // ---------------------------------------------------------
   if (event.httpMethod === 'GET') {
     const queryParams = event.queryStringParameters || {};
-    const queryString = new URLSearchParams(queryParams).toString();
-    const appDeepLink = `rorkapp://payment-status?platform=geidea&${queryString}`;
-
-    // تحليل البيانات للعرض
+    
+    // تحليل النتيجة من جيديا
     const responseCode = queryParams.responseCode || 'N/A';
-    const responseMessage = queryParams.responseMessage || 'No message';
+    const responseMessage = queryParams.responseMessage || 'No message provided';
     const isSuccess = responseCode === '000' || responseCode === '0';
+    
     const statusColor = isSuccess ? '#10B981' : '#EF4444';
-    const statusText = isSuccess ? 'عملية ناجحة (Success)' : 'عملية فاشلة (Failed)';
+    const statusIcon = isSuccess ? '✔' : '✖';
+    const statusTitle = isSuccess ? 'تمت العملية بنجاح' : 'فشلت العملية';
+    const statusDesc = isSuccess ? 'تم تأكيد الدفع. يمكنك الآن العودة للتطبيق.' : 'لم يتم خصم المبلغ. يرجى العودة للتطبيق والمحاولة مرة أخرى.';
 
-    // HTML مع جدول تفاصيل للإيرور
+    // صفحة HTML بسيطة وجميلة
     const html = `
       <!DOCTYPE html>
       <html lang="ar" dir="rtl">
       <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Geidea Debugger</title>
+          <title>حالة الدفع</title>
           <style>
-              body { font-family: monospace; background-color: #1a1a1a; color: #e0e0e0; padding: 20px; text-align: center; }
-              .card { background: #2d2d2d; padding: 20px; border-radius: 10px; border: 2px solid ${statusColor}; max-width: 500px; margin: 0 auto; }
-              h2 { color: ${statusColor}; margin-top: 0; }
-              table { width: 100%; text-align: left; margin: 20px 0; border-collapse: collapse; }
-              th, td { padding: 8px; border-bottom: 1px solid #444; }
-              th { color: #888; }
-              .btn { display: block; margin-top: 20px; padding: 15px; background-color: ${statusColor}; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-family: sans-serif; }
-              .raw-data { background: #000; padding: 10px; font-size: 10px; color: #0f0; text-align: left; overflow-x: auto; margin-top: 20px; }
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; text-align: center; }
+              .card { background: white; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 400px; width: 100%; }
+              .icon-circle { width: 80px; height: 80px; background-color: ${statusColor}20; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; }
+              .icon { font-size: 40px; color: ${statusColor}; }
+              h2 { color: #1f2937; margin: 0 0 10px 0; font-size: 24px; }
+              p { color: #6b7280; line-height: 1.5; margin-bottom: 30px; }
+              .details { background: #f9fafb; padding: 15px; border-radius: 10px; font-size: 14px; color: #374151; margin-bottom: 20px; text-align: right; }
+              .btn { display: block; width: 100%; padding: 15px 0; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px; }
+              .footer { margin-top: 20px; font-size: 12px; color: #9ca3af; }
           </style>
-          <script>
-              window.onload = function() {
-                  // تأخير التوجيه قليلاً عشان تلحق تشوف الإيرور لو فيه مشكلة
-                  setTimeout(function() {
-                      window.location.href = "${appDeepLink}";
-                  }, 1500);
-              };
-          </script>
       </head>
       <body>
           <div class="card">
-              <h2>${statusText}</h2>
-              <table>
-                  <tr><th>Code</th><td>${responseCode}</td></tr>
-                  <tr><th>Message</th><td>${responseMessage}</td></tr>
-                  <tr><th>Order ID</th><td>${queryParams.orderId || 'N/A'}</td></tr>
-              </table>
+              <div class="icon-circle">
+                  <span class="icon">${statusIcon}</span>
+              </div>
+              <h2>${statusTitle}</h2>
+              <p>${statusDesc}</p>
               
-              <a href="${appDeepLink}" class="btn">العودة للتطبيق فوراً</a>
+              <div class="details">
+                  <strong>كود الحالة:</strong> ${responseCode}<br>
+                  <strong>الرسالة:</strong> ${responseMessage}
+              </div>
 
-              <div class="raw-data">
-                  <strong>Raw Params:</strong><br>
-                  ${JSON.stringify(queryParams, null, 2)}
+              <div style="background-color: #fffbeb; color: #b45309; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 20px;">
+                  ⚠️ يرجى إغلاق هذه الصفحة والعودة للتطبيق يدوياً للتحقق من الرصيد.
               </div>
           </div>
       </body>
@@ -95,7 +91,7 @@ exports.handler = async (event, context) => {
   }
 
   // ---------------------------------------------------------
-  // 3. إنشاء الجلسة (POST) - مع طباعة أخطاء تفصيلية
+  // 3. إنشاء الجلسة (POST)
   // ---------------------------------------------------------
   if (event.httpMethod !== 'POST') {
       return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
@@ -105,18 +101,10 @@ exports.handler = async (event, context) => {
     const publicKey = process.env.GEIDEA_PUBLIC_KEY;
     const apiPassword = process.env.GEIDEA_API_PASSWORD;
 
-    // (DEBUG STEP 1)
-    if (!publicKey || !apiPassword) {
-        console.error('MISSING KEYS');
-        return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server Config Error: Keys missing in Netlify' }) };
-    }
+    if (!publicKey || !apiPassword) return { statusCode: 500, headers, body: JSON.stringify({ error: 'Missing Keys' }) };
 
     let incomingData;
-    try {
-        incomingData = JSON.parse(event.body);
-    } catch (e) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON in request body' }) };
-    }
+    try { incomingData = JSON.parse(event.body); } catch (e) { return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
 
     const operation = incomingData.operation || 'createSession';
     const payload = incomingData.payload || {};
@@ -124,7 +112,6 @@ exports.handler = async (event, context) => {
     
     if (!config) return { statusCode: 400, headers, body: JSON.stringify({ error: `Unknown operation: ${operation}` }) };
 
-    // ... (نفس منطق التجهيز السابق) ...
     let finalPath = config.path;
     if (payload.pathParams) {
         Object.keys(payload.pathParams).forEach(key => finalPath = finalPath.replace(`{${key}}`, payload.pathParams[key]));
@@ -132,7 +119,6 @@ exports.handler = async (event, context) => {
     const { pathParams, queryParams, ...bodyData } = payload;
     if (queryParams) finalPath += `?${new URLSearchParams(queryParams).toString()}`;
 
-    // التوقيع
     const timestamp = new Date().toISOString(); 
     let finalBody = { ...bodyData };
     if (config.sign) {
@@ -151,9 +137,6 @@ exports.handler = async (event, context) => {
 
     const authHeader = `Basic ${Buffer.from(`${publicKey}:${apiPassword}`).toString('base64')}`;
     const requestData = JSON.stringify(finalBody);
-
-    // (DEBUG STEP 2) Log outgoing request (without secrets)
-    console.log(`Sending to Geidea [${config.host}]:`, finalBody.merchantReferenceId);
 
     const options = {
       hostname: config.host,
@@ -177,9 +160,7 @@ exports.handler = async (event, context) => {
              json._statusCode = res.statusCode; 
              resolve(json);
           } catch (e) {
-             // لو الرد مش JSON (مثلاً HTML error page من جيديا)
-             console.error('Geidea Non-JSON Response:', body);
-             resolve({ _statusCode: res.statusCode, error: 'Non-JSON response from Geidea', rawBody: body });
+             resolve({ _statusCode: res.statusCode, rawBody: body });
           }
         });
       });
@@ -195,7 +176,6 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('Handler Error:', error);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message, stack: error.stack }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }
 };
