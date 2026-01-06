@@ -377,7 +377,7 @@
         <!-- خانة إدخال المبلغ -->
         <div class="mb-4">
             <label class="block text-gray-700 text-sm font-bold mb-2 text-right">المبلغ المراد شحنه (ر.س)</label>
-            <input type="number" id="chargeAmount" class="shadow appearance-none border rounded w-full py-3 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right font-bold text-lg" placeholder="أدخل المبلغ هنا (مثلاً 100)" min="1" step="0.01">
+            <input type="number" id="chargeAmount" value="100" class="shadow appearance-none border rounded w-full py-3 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right font-bold text-lg" placeholder="أدخل المبلغ هنا" min="1" step="0.01">
         </div>
 
         <!-- زر الشحن -->
@@ -393,10 +393,10 @@
     <!-- منطق Firebase والتطبيق -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // إعدادات Firebase من الكود الخاص بك
+        // إعدادات Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyA6WQKgXjdqe3ghQEQ5EXAMZM7ffiWlabk",
             authDomain: "ai-roadmap-jnadeem.firebaseapp.com",
@@ -419,6 +419,20 @@
         const signInButton = document.getElementById('signIn');
         let currentUser = null;
 
+        // --- مراقبة حالة المستخدم (للحفاظ على الدخول عند التحديث) ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                // إذا كان المستخدم مسجلاً، ننتقل مباشرة للوحة التحكم
+                await handleSuccessLogin();
+            } else {
+                currentUser = null;
+                // إظهار شاشة الدخول
+                authContainer.style.display = 'block';
+                dashboardContainer.style.display = 'none';
+            }
+        });
+
         // --- منطق تبديل الواجهة (Sliding Panel) ---
         signUpButton.addEventListener('click', () => authContainer.classList.add("right-panel-active"));
         signInButton.addEventListener('click', () => authContainer.classList.remove("right-panel-active"));
@@ -438,9 +452,8 @@
             toggleLoader(btn, loader, true);
             
             try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                currentUser = userCredential.user;
-                await handleSuccessLogin();
+                await signInWithEmailAndPassword(auth, email, password);
+                // onAuthStateChanged will handle the rest
             } catch (error) {
                 console.error(error);
                 alert("خطأ في تسجيل الدخول: " + error.message);
@@ -463,19 +476,19 @@
 
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                currentUser = userCredential.user;
+                const user = userCredential.user;
                 
                 // إنشاء مستند المستخدم في Firestore
-                await setDoc(doc(db, "users", currentUser.uid), {
-                    uid: currentUser.uid,
-                    email: currentUser.email,
+                await setDoc(doc(db, "users", user.uid), {
+                    uid: user.uid,
+                    email: user.email,
                     displayName: name,
                     walletBalance: 0,
                     isPremium: false,
                     createdAt: serverTimestamp()
                 });
-
-                await handleSuccessLogin();
+                
+                // onAuthStateChanged will handle the rest
             } catch (error) {
                 console.error(error);
                 alert("خطأ في إنشاء الحساب: " + error.message);
@@ -485,33 +498,35 @@
 
         // --- 3. الانتقال للوحة التحكم وجلب البيانات ---
         async function handleSuccessLogin() {
-            // إخفاء المصادقة وإظهار اللوحة
             authContainer.style.display = 'none';
             dashboardContainer.style.display = 'block';
-            
             await loadUserProfile(currentUser.uid);
         }
 
         async function loadUserProfile(uid) {
-            const docRef = doc(db, "users", uid);
-            const docSnap = await getDoc(docRef);
+            try {
+                const docRef = doc(db, "users", uid);
+                const docSnap = await getDoc(docRef);
 
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                document.getElementById('displayUid').innerText = data.uid.substring(0, 15) + "...";
-                document.getElementById('displayName').innerText = data.displayName || "مستخدم";
-                document.getElementById('displayBalance').innerText = data.walletBalance.toFixed(2);
-                
-                if(data.isPremium) {
-                    const statusEl = document.getElementById('displayStatus');
-                    statusEl.innerText = "عضوية ذهبية (Premium)";
-                    statusEl.style.color = "#d4af37";
-                    statusEl.style.fontWeight = "bold";
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('displayUid').innerText = data.uid.substring(0, 15) + "...";
+                    document.getElementById('displayName').innerText = data.displayName || "مستخدم";
+                    document.getElementById('displayBalance').innerText = (data.walletBalance || 0).toFixed(2);
+                    
+                    if(data.isPremium) {
+                        const statusEl = document.getElementById('displayStatus');
+                        statusEl.innerText = "عضوية ذهبية (Premium)";
+                        statusEl.style.color = "#d4af37";
+                        statusEl.style.fontWeight = "bold";
+                    }
                 }
+            } catch (e) {
+                console.error("Error loading profile:", e);
             }
         }
 
-        // --- 4. عملية الدفع (Geidea Integration) ---
+        // --- 4. عملية الدفع (مطابقة للكود القديم) ---
         document.getElementById('payBtn').addEventListener('click', async () => {
             if(!currentUser) return;
             
@@ -519,30 +534,29 @@
             const loader = document.getElementById('payLoader');
             const amountInput = document.getElementById('chargeAmount');
             
-            // قراءة المبلغ من الخانة
-            const amount = parseFloat(amountInput.value);
-
-            // التحقق من صحة المبلغ
-            if (!amount || amount <= 0) {
-                alert("الرجاء إدخال مبلغ صحيح أكبر من 0");
-                amountInput.focus();
+            // قراءة المبلغ من الخانة مع التأكد أنه رقم
+            let amount = parseFloat(amountInput.value);
+            if (isNaN(amount) || amount <= 0) {
+                alert("الرجاء إدخال مبلغ صحيح");
                 return;
             }
 
             toggleLoader(btn, loader, true);
-            updateStatus(`جاري الاتصال ببوابة الدفع لشحن ${amount} ريال...`, "blue");
+            updateStatus(`جاري الاتصال ببوابة الدفع (${amount} SAR)...`, "blue");
 
             try {
-                // إرسال الطلب للباك إند
+                // نفس هيكل البيانات الأصلي الذي كان يعمل معك
                 const requestPayload = {
                     operation: 'createSession',
                     payload: {
-                        amount: amount, // إرسال المبلغ المحدد
+                        amount: amount,
                         currency: "SAR",
                         paymentOperation: "Pay",
                         appearance: { uiMode: "modal" },
-                        customer: { email: currentUser.email },
-                        merchantReferenceId: currentUser.uid
+                        customer: { 
+                            email: currentUser.email
+                        },
+                        merchantReferenceId: currentUser.uid 
                     }
                 };
 
@@ -552,20 +566,24 @@
                     body: JSON.stringify(requestPayload)
                 });
 
-                if (response.status === 404) throw new Error("لم يتم العثور على دالة الدفع");
-                
+                if (response.status === 404) {
+                    throw new Error("لم يتم العثور على دالة الدفع (تأكد من اسم الملف)");
+                }
+
                 const data = await response.json();
 
                 if (data.session && data.session.id) {
                     updateStatus("نافذة الدفع جاهزة...", "green");
                     
-                    if (typeof GeideaCheckout === 'undefined') throw new Error("مكتبة الدفع غير محملة");
+                    if (typeof GeideaCheckout === 'undefined') {
+                        throw new Error("مكتبة الدفع غير محملة");
+                    }
 
                     const payment = new GeideaCheckout(
                         async function(success) {
                             updateStatus("✅ تم الدفع! جاري تحديث الرصيد...", "blue");
                             
-                            // تحديث الرصيد في Firestore
+                            // تحديث الرصيد في قاعدة البيانات
                             const userRef = doc(db, "users", currentUser.uid);
                             await updateDoc(userRef, {
                                 walletBalance: increment(amount),
@@ -574,8 +592,7 @@
                             });
 
                             await loadUserProfile(currentUser.uid);
-                            updateStatus(`تم شحن ${amount} ريال بنجاح!`, "green");
-                            amountInput.value = ""; // تصفير الحقل
+                            updateStatus("تم الشحن بنجاح!", "green");
                             toggleLoader(btn, loader, false);
                         },
                         function(err) {
@@ -591,7 +608,8 @@
                     payment.startPayment(data.session.id);
 
                 } else {
-                    throw new Error(data.detailedResponseMessage || "فشل إنشاء الجلسة");
+                    console.error("Server Error:", data);
+                    throw new Error(data.detailedResponseMessage || data.responseMessage || "فشل إنشاء الجلسة");
                 }
 
             } catch (err) {
@@ -606,7 +624,7 @@
             btn.disabled = isLoading;
             loader.style.display = isLoading ? "inline-block" : "none";
         }
-// wewadsad
+
         function updateStatus(msg, color) {
             statusDiv.innerText = msg;
             statusDiv.style.color = color || "black";
