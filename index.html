@@ -158,13 +158,11 @@
                     showStatus("تم تسجيل الدخول بنجاح", "green");
                 } catch (error) {
                     if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                        // إذا لم يوجد، ننشئ حساب جديد
                         if (!name) {
                              throw new Error("هذا البريد غير مسجل. الرجاء إدخال الاسم لإنشاء حساب جديد.");
                         }
                         showStatus("حساب جديد، جاري الإنشاء...", "blue");
                         userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                        // إنشاء المستند الأولي في قاعدة البيانات
                         await createInitialUserDoc(userCredential.user, name);
                     } else {
                         throw error;
@@ -174,7 +172,6 @@
                 currentUser = userCredential.user;
                 await loadUserProfile(currentUser.uid);
                 
-                // تبديل الواجهة
                 loginSection.style.display = "none";
                 profileSection.style.display = "block";
                 statusDiv.innerText = "";
@@ -187,7 +184,7 @@
             }
         };
 
-        // 2. إنشاء مستند قاعدة البيانات (للمستخدم الجديد فقط)
+        // 2. إنشاء مستند قاعدة البيانات
         async function createInitialUserDoc(user, displayName) {
             const userRef = doc(db, "users", user.uid);
             await setDoc(userRef, {
@@ -200,15 +197,13 @@
             });
         }
 
-        // 3. جلب وعرض البيانات (للمستخدم الحالي)
+        // 3. جلب وعرض البيانات
         async function loadUserProfile(uid) {
             const docRef = doc(db, "users", uid);
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                
-                // تعبئة البيانات في الواجهة
                 document.getElementById('displayUid').innerText = data.uid;
                 document.getElementById('displayName').innerText = data.displayName || "مستخدم";
                 document.getElementById('displayBalance').innerHTML = `${data.walletBalance.toFixed(2)} <small>SAR</small>`;
@@ -219,12 +214,11 @@
                     document.getElementById('displayStatus').style.fontWeight = "bold";
                 }
             } else {
-                console.log("No such document!");
                 showStatus("لم يتم العثور على بيانات المحفظة", "orange");
             }
         }
 
-        // 4. عملية الشحن (الدفع)
+        // 4. عملية الشحن (الدفع) - تم التحديث لتتوافق مع الكود الخلفي الجديد
         window.initiateTopUp = async () => {
             if(!currentUser) return;
             
@@ -237,20 +231,37 @@
             showStatus("جاري الاتصال ببوابة الدفع...", "blue");
 
             try {
-                // استدعاء دالة السيرفر
+                // إعداد هيكلية البيانات كما يتوقعها الباك إند الجديد
+                const requestPayload = {
+                    operation: 'createSession', // نحدد العملية
+                    payload: {
+                        amount: amount,
+                        currency: "SAR",
+                        paymentOperation: "Pay", // مهم جداً
+                        appearance: { uiMode: "modal" },
+                        customer: { 
+                            email: currentUser.email,
+                            // يمكنك إضافة رقم الهاتف هنا إذا كان متوفراً
+                            // phoneNumber: "...", 
+                        },
+                        merchantReferenceId: currentUser.uid // نرسل معرف المستخدم كمرجع
+                    }
+                };
+
                 const response = await fetch('/.netlify/functions/create-payment-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        amount: amount, 
-                        customerEmail: currentUser.email,
-                        userId: currentUser.uid 
-                    })
+                    body: JSON.stringify(requestPayload)
                 });
+
+                if (response.status === 404) {
+                    throw new Error("لم يتم العثور على دالة الدفع (تأكد من اسم الملف)");
+                }
 
                 const data = await response.json();
 
-                if (data.success && data.sessionId) {
+                // التحقق من الاستجابة بناءً على هيكلية Geidea
+                if (data.session && data.session.id) {
                     showStatus("نافذة الدفع جاهزة...", "green");
                     
                     if (typeof GeideaCheckout === 'undefined') {
@@ -269,9 +280,7 @@
                                 lastPaymentDate: serverTimestamp()
                             });
 
-                            // إعادة تحميل البيانات لعرض الرصيد الجديد
                             await loadUserProfile(currentUser.uid);
-                            
                             showStatus("تم الشحن بنجاح!", "green");
                             btn.disabled = false;
                             loader.style.display = "none";
@@ -288,10 +297,11 @@
                         }
                     );
 
-                    payment.startPayment(data.sessionId);
+                    payment.startPayment(data.session.id);
 
                 } else {
-                    throw new Error("فشل في إنشاء جلسة الدفع");
+                    console.error("Server Error:", data);
+                    throw new Error(data.detailedResponseMessage || data.responseMessage || "فشل إنشاء الجلسة");
                 }
 
             } catch (err) {
