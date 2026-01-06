@@ -102,7 +102,7 @@
                         phoneNumber: SAUDI_PHONE_NUMBER,
                         phoneCountryCode: SAUDI_COUNTRY_CODE
                     } 
-                }
+                } 
             },
             { 
                 id: 'saveCard', 
@@ -124,7 +124,7 @@
                         phoneNumber: SAUDI_PHONE_NUMBER,
                         phoneCountryCode: SAUDI_COUNTRY_CODE
                     } 
-                }
+                } 
             }
         ];
 
@@ -257,11 +257,32 @@
                 alert("Cannot open payment window: Library not loaded (Check AdBlock)");
                 return;
             }
+            
+            // --- تم التعديل هنا لإظهار رسائل النجاح ---
             const payment = new GeideaCheckout(
-                s => console.log(s), 
-                e => console.error(e), 
-                () => console.log("Cancel")
+                // 1. Success Callback (دالة النجاح)
+                function(successData) {
+                    console.log("Success:", successData);
+                    // تسجيل في شاشة الترمينال
+                    log("✅ 💰 PAYMENT SUCCESSFUL! (تم الدفع بنجاح)", "success", JSON.stringify(successData, null, 2));
+                    // إظهار رسالة منبثقة للمستخدم
+                    alert("✅ تم الدفع بنجاح!\nPayment Successful!");
+                }, 
+                
+                // 2. Error Callback (دالة الخطأ)
+                function(errorData) {
+                    console.error("Error:", errorData);
+                    log("❌ Payment Failed", "error", JSON.stringify(errorData));
+                    alert("❌ فشل الدفع.");
+                }, 
+                
+                // 3. Cancel Callback (دالة الإلغاء)
+                function() {
+                    console.log("Cancel");
+                    log("⚠️ Payment Cancelled by user", "warn");
+                }
             );
+            
             payment.startPayment(sessionId);
         }
 
