@@ -3,319 +3,439 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة المستخدم والمحفظة</title>
+    <title>تسجيل الدخول وإنشاء حساب</title>
     
-    <!-- Geidea Script -->
-    <script src="geideaCheckout.min.js" onerror="loadExternalScript()"></script>
-    <script>
-        function loadExternalScript() {
-            console.warn("Local script not found, trying CDN...");
-            var script = document.createElement('script');
-            script.src = "https://www.ksamerchant.geidea.net/hpp/geideaCheckout.min.js";
-            document.head.appendChild(script);
-        }
-    </script>
-    
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 420px; text-align: center; transition: all 0.3s ease; }
-        
-        /* Profile & Data Styles */
-        .data-card { display: none; text-align: right; animation: fadeIn 0.5s; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
-        .data-row { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
-        .data-row:last-child { border-bottom: none; }
-        .data-label { color: #666; font-size: 0.9em; }
-        .data-value { font-weight: bold; color: #333; font-family: monospace; font-size: 1.1em; }
-        
-        .balance-box { background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); color: white; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
-        .balance-amount { font-size: 32px; font-weight: bold; display: block; margin-top: 5px; }
-        .balance-label { font-size: 0.9em; opacity: 0.9; }
+    <!-- خط تجوال من جوجل -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- أيقونات FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- مكتبة Tailwind CSS للتنسيق -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-        /* Form Styles */
-        h2 { color: #333; margin-top: 0; }
-        input { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; background: #f9f9f9; }
-        input:focus { border-color: #4caf50; background: #fff; outline: none; }
+    <style>
+        /* إعدادات الخطوط والألوان العامة */
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: #f6f5f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        h1 {
+            font-weight: bold;
+            margin: 0;
+        }
+
+        p {
+            font-size: 14px;
+            font-weight: 100;
+            line-height: 20px;
+            letter-spacing: 0.5px;
+            margin: 20px 0 30px;
+        }
+
+        span {
+            font-size: 12px;
+        }
+
+        a {
+            color: #333;
+            font-size: 14px;
+            text-decoration: none;
+            margin: 15px 0;
+            transition: 0.3s;
+        }
         
-        /* Buttons */
-        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; margin-top: 15px; }
-        .btn-primary { background: #333; color: white; }
-        .btn-primary:hover { background: #000; }
-        .btn-success { background: #4caf50; color: white; margin-top: 10px; }
-        .btn-success:hover { background: #43a047; }
+        a:hover {
+            color: #764ba2;
+        }
+
+        button {
+            border-radius: 20px;
+            border: 1px solid #764ba2;
+            background-color: #764ba2;
+            color: #FFFFFF;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 12px 45px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: transform 80ms ease-in, background-color 0.3s;
+            cursor: pointer;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button:focus {
+            outline: none;
+        }
+
+        button.ghost {
+            background-color: transparent;
+            border-color: #FFFFFF;
+        }
         
-        .status { margin-top: 15px; font-size: 14px; color: #666; min-height: 20px; text-align: center; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #555; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: none; vertical-align: middle; margin-left: 10px; }
+        button.ghost:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        form {
+            background-color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 0 50px;
+            height: 100%;
+            text-align: center;
+        }
+
+        input {
+            background-color: #eee;
+            border: none;
+            padding: 12px 15px;
+            margin: 8px 0;
+            width: 100%;
+            border-radius: 8px;
+            outline: none;
+            transition: 0.3s;
+            font-family: 'Tajawal', sans-serif;
+        }
         
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        input:focus {
+            background-color: #e0e0e0;
+            box-shadow: 0 0 0 2px rgba(118, 75, 162, 0.2);
+        }
+
+        /* الحاوية الرئيسية */
+        .container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 14px 28px rgba(0,0,0,0.25), 
+                        0 10px 10px rgba(0,0,0,0.22);
+            position: relative;
+            overflow: hidden;
+            width: 768px;
+            max-width: 100%;
+            min-height: 550px; /* Increased height for better mobile view */
+        }
+
+        .form-container {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            transition: all 0.6s ease-in-out;
+        }
+
+        /* تنسيق نموذج تسجيل الدخول */
+        .sign-in-container {
+            left: 0;
+            width: 50%;
+            z-index: 2;
+        }
+
+        /* تنسيق نموذج إنشاء الحساب */
+        .sign-up-container {
+            left: 0;
+            width: 50%;
+            opacity: 0;
+            z-index: 1;
+        }
+
+        /* الحركة عند التفعيل */
+        .container.right-panel-active .sign-in-container {
+            transform: translateX(100%);
+        }
+
+        .container.right-panel-active .sign-up-container {
+            transform: translateX(100%);
+            opacity: 1;
+            z-index: 5;
+            animation: show 0.6s;
+        }
+
+        @keyframes show {
+            0%, 49.99% {
+                opacity: 0;
+                z-index: 1;
+            }
+            
+            50%, 100% {
+                opacity: 1;
+                z-index: 5;
+            }
+        }
+
+        /* الطبقة الملونة المتحركة (Overlay) */
+        .overlay-container {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 50%;
+            height: 100%;
+            overflow: hidden;
+            transition: transform 0.6s ease-in-out;
+            z-index: 100;
+        }
+
+        .container.right-panel-active .overlay-container{
+            transform: translateX(-100%);
+        }
+
+        .overlay {
+            background: #FF416C;
+            background: -webkit-linear-gradient(to right, #667eea, #764ba2);
+            background: linear-gradient(to right, #667eea, #764ba2);
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: 0 0;
+            color: #FFFFFF;
+            position: relative;
+            left: -100%;
+            height: 100%;
+            width: 200%;
+            transform: translateX(0);
+            transition: transform 0.6s ease-in-out;
+        }
+
+        .container.right-panel-active .overlay {
+            transform: translateX(50%);
+        }
+
+        .overlay-panel {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 0 40px;
+            text-align: center;
+            top: 0;
+            height: 100%;
+            width: 50%;
+            transform: translateX(0);
+            transition: transform 0.6s ease-in-out;
+        }
+
+        .overlay-left {
+            transform: translateX(-20%);
+        }
+
+        .container.right-panel-active .overlay-left {
+            transform: translateX(0);
+        }
+
+        .overlay-right {
+            right: 0;
+            transform: translateX(0);
+        }
+
+        .container.right-panel-active .overlay-right {
+            transform: translateX(20%);
+        }
+
+        /* الشبكات الاجتماعية */
+        .social-container {
+            margin: 20px 0;
+        }
+
+        .social-container a {
+            border: 1px solid #DDDDDD;
+            border-radius: 50%;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 5px;
+            height: 40px;
+            width: 40px;
+            color: #333;
+            transition: 0.3s;
+        }
+        
+        .social-container a:hover {
+            background-color: #764ba2;
+            color: white;
+            border-color: #764ba2;
+        }
+
+        /* توافق مع الجوال (Responsive) */
+        @media (max-width: 768px) {
+            .container {
+                width: 90%;
+                min-height: 600px;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .form-container {
+                width: 100%;
+                position: absolute;
+                height: 100%;
+                top: 0;
+                left: 0;
+                transition: all 0.4s ease-in-out;
+            }
+
+            .sign-in-container {
+                z-index: 2;
+                opacity: 1;
+            }
+            
+            .sign-up-container {
+                opacity: 0;
+                z-index: 1;
+                transform: none; /* تعطيل الحركة الجانبية في الموبايل */
+            }
+
+            /* في وضع الموبايل، نخفي اللوحة الجانبية ونستخدم أزرار عادية للتبديل */
+            .overlay-container {
+                display: none;
+            }
+
+            .container.right-panel-active .sign-in-container {
+                opacity: 0;
+                z-index: 1;
+                transform: none;
+            }
+            
+            .container.right-panel-active .sign-up-container {
+                opacity: 1;
+                z-index: 5;
+                animation: fadeIn 0.5s;
+                transform: none;
+            }
+
+            /* زر التبديل الخاص بالموبايل فقط */
+            .mobile-toggle {
+                display: block;
+                margin-top: 20px;
+                color: #764ba2;
+                cursor: pointer;
+                font-weight: bold;
+                text-decoration: underline;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .mobile-toggle {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        
-        <!-- قسم تسجيل الدخول -->
-        <div id="loginSection">
-            <h2>تسجيل الدخول / إنشاء حساب</h2>
-            <p style="color:#777; font-size:0.9em;">أدخل بياناتك لعرض محفظتك أو الشحن</p>
-            
-            <input type="text" id="name" placeholder="الاسم (للمستخدمين الجدد)">
-            <input type="email" id="email" placeholder="البريد الإلكتروني">
-            <input type="password" id="password" placeholder="كلمة المرور">
-            
-            <button class="btn btn-primary" id="loginBtn" onclick="handleAuth()">
-                دخول / تسجيل
-                <span class="loader" id="loginLoader"></span>
-            </button>
+    <div class="container" id="container">
+        <!-- نموذج إنشاء حساب (Sign Up) -->
+        <div class="form-container sign-up-container">
+            <form action="#">
+                <h1 class="text-2xl mb-2 text-gray-800">إنشاء حساب</h1>
+                <div class="social-container">
+                    <a href="#" class="social"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="social"><i class="fab fa-google-plus-g"></i></a>
+                    <a href="#" class="social"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+                <span class="text-gray-500 mb-4">أو استخدم بريدك الإلكتروني للتسجيل</span>
+                <input type="text" placeholder="الاسم الكامل" required />
+                <input type="email" placeholder="البريد الإلكتروني" required />
+                <input type="password" placeholder="كلمة المرور" required />
+                <button type="submit" class="mt-4 shadow-lg hover:shadow-xl">تسجيل جديد</button>
+                
+                <!-- زر تبديل للموبايل فقط -->
+                <p class="mobile-toggle" onclick="toggleMobile()">لديك حساب بالفعل؟ تسجيل الدخول</p>
+            </form>
         </div>
 
-        <!-- قسم البيانات والمحفظة (يظهر بعد الدخول) -->
-        <div id="profileSection" style="display: none;">
-            <h2>محفظتي</h2>
-            
-            <!-- صندوق الرصيد -->
-            <div class="balance-box">
-                <span class="balance-label">الرصيد الحالي</span>
-                <span class="balance-amount" id="displayBalance">0.00 <small>SAR</small></span>
-            </div>
-
-            <!-- تفاصيل البيانات التقنية -->
-            <div class="data-card" style="display: block;">
-                <div class="data-row">
-                    <span class="data-label">الاسم المسجل</span>
-                    <span class="data-value" id="displayName">--</span>
+        <!-- نموذج تسجيل الدخول (Sign In) -->
+        <div class="form-container sign-in-container">
+            <form action="#">
+                <h1 class="text-2xl mb-2 text-gray-800">تسجيل الدخول</h1>
+                <div class="social-container">
+                    <a href="#" class="social"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="social"><i class="fab fa-google-plus-g"></i></a>
+                    <a href="#" class="social"><i class="fab fa-linkedin-in"></i></a>
                 </div>
-                <div class="data-row">
-                    <span class="data-label">User ID (UID)</span>
-                    <span class="data-value" id="displayUid" style="font-size: 0.8em;">--</span>
-                </div>
-                <div class="data-row">
-                    <span class="data-label">حالة الحساب</span>
-                    <span class="data-value" id="displayStatus" style="color: #666;">مجاني</span>
-                </div>
-            </div>
-
-            <button class="btn btn-success" id="payBtn" onclick="initiateTopUp()">
-                شحن رصيد (100 ر.س)
-                <span class="loader" id="payLoader"></span>
-            </button>
-            
-            <button class="btn" style="background:transparent; color:#888; margin-top:5px;" onclick="location.reload()">تسجيل خروج</button>
+                <span class="text-gray-500 mb-4">أو استخدم حسابك الحالي</span>
+                <input type="email" placeholder="البريد الإلكتروني" required />
+                <input type="password" placeholder="كلمة المرور" required />
+                <a href="#">هل نسيت كلمة المرور؟</a>
+                <button type="submit" class="mt-2 shadow-lg hover:shadow-xl">دخول</button>
+                
+                <!-- زر تبديل للموبايل فقط -->
+                <p class="mobile-toggle" onclick="toggleMobile()">ليس لديك حساب؟ إنشاء حساب</p>
+            </form>
         </div>
 
-        <div id="statusMessage" class="status"></div>
+        <!-- اللوحة المتحركة (تظهر فقط في الشاشات الكبيرة) -->
+        <div class="overlay-container">
+            <div class="overlay">
+                <!-- الجزء الأيسر: يظهر عندما نكون في صفحة التسجيل للعودة للدخول -->
+                <div class="overlay-panel overlay-left">
+                    <h1 class="text-3xl mb-4 font-bold">مرحباً بعودتك!</h1>
+                    <p>للبقاء على اتصال معنا، يرجى تسجيل الدخول بمعلوماتك الشخصية</p>
+                    <button class="ghost" id="signIn">تسجيل الدخول</button>
+                </div>
+                <!-- الجزء الأيمن: يظهر افتراضياً لدعوة المستخدم للتسجيل -->
+                <div class="overlay-panel overlay-right">
+                    <h1 class="text-3xl mb-4 font-bold">أهلاً بك يا صديقي!</h1>
+                    <p>أدخل بياناتك الشخصية وابدأ رحلتك معنا اليوم</p>
+                    <button class="ghost" id="signUp">إنشاء حساب</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Firebase Logic -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <!-- رسالة تنبيه بسيطة (Toast) -->
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+        تم إرسال البيانات بنجاح (محاكاة)
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyA6WQKgXjdqe3ghQEQ5EXAMZM7ffiWlabk",
-            authDomain: "ai-roadmap-jnadeem.firebaseapp.com",
-            projectId: "ai-roadmap-jnadeem",
-            storageBucket: "ai-roadmap-jnadeem.firebasestorage.app",
-            messagingSenderId: "332299268804",
-            appId: "1:332299268804:web:225b27d243845688194f91",
-            measurementId: "G-P8E119RZDX"
-        };
+    <script>
+        const signUpButton = document.getElementById('signUp');
+        const signInButton = document.getElementById('signIn');
+        const container = document.getElementById('container');
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // التبديل عند الضغط على الأزرار في وضع الكمبيوتر
+        signUpButton.addEventListener('click', () => {
+            container.classList.add("right-panel-active");
+        });
 
-        // UI Refs
-        const loginSection = document.getElementById('loginSection');
-        const profileSection = document.getElementById('profileSection');
-        const statusDiv = document.getElementById('statusMessage');
-        
-        let currentUser = null; // لتخزين كائن المستخدم الحالي
+        signInButton.addEventListener('click', () => {
+            container.classList.remove("right-panel-active");
+        });
 
-        // 1. الدخول والتحقق
-        window.handleAuth = async () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const name = document.getElementById('name').value;
-            const btn = document.getElementById('loginBtn');
-            const loader = document.getElementById('loginLoader');
-
-            if(!email || !password) {
-                showStatus("الرجاء إدخال البريد وكلمة المرور", "red");
-                return;
-            }
-
-            btn.disabled = true;
-            loader.style.display = "inline-block";
-            showStatus("جاري التحقق...", "blue");
-
-            try {
-                let userCredential;
-                // محاولة تسجيل الدخول أولاً
-                try {
-                    userCredential = await signInWithEmailAndPassword(auth, email, password);
-                    showStatus("تم تسجيل الدخول بنجاح", "green");
-                } catch (error) {
-                    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                        if (!name) {
-                             throw new Error("هذا البريد غير مسجل. الرجاء إدخال الاسم لإنشاء حساب جديد.");
-                        }
-                        showStatus("حساب جديد، جاري الإنشاء...", "blue");
-                        userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                        await createInitialUserDoc(userCredential.user, name);
-                    } else {
-                        throw error;
-                    }
-                }
-
-                currentUser = userCredential.user;
-                await loadUserProfile(currentUser.uid);
-                
-                loginSection.style.display = "none";
-                profileSection.style.display = "block";
-                statusDiv.innerText = "";
-
-            } catch (err) {
-                console.error(err);
-                showStatus(err.message, "red");
-                btn.disabled = false;
-                loader.style.display = "none";
-            }
-        };
-
-        // 2. إنشاء مستند قاعدة البيانات
-        async function createInitialUserDoc(user, displayName) {
-            const userRef = doc(db, "users", user.uid);
-            await setDoc(userRef, {
-                uid: user.uid,
-                email: user.email,
-                displayName: displayName,
-                walletBalance: 0,
-                isPremium: false,
-                createdAt: serverTimestamp()
-            });
-        }
-
-        // 3. جلب وعرض البيانات
-        async function loadUserProfile(uid) {
-            const docRef = doc(db, "users", uid);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                document.getElementById('displayUid').innerText = data.uid;
-                document.getElementById('displayName').innerText = data.displayName || "مستخدم";
-                document.getElementById('displayBalance').innerHTML = `${data.walletBalance.toFixed(2)} <small>SAR</small>`;
-                
-                if(data.isPremium) {
-                    document.getElementById('displayStatus').innerText = "عضوية ذهبية (Premium)";
-                    document.getElementById('displayStatus').style.color = "#d4af37";
-                    document.getElementById('displayStatus').style.fontWeight = "bold";
-                }
+        // دالة التبديل لوضع الموبايل
+        function toggleMobile() {
+            if (container.classList.contains("right-panel-active")) {
+                container.classList.remove("right-panel-active");
             } else {
-                showStatus("لم يتم العثور على بيانات المحفظة", "orange");
+                container.classList.add("right-panel-active");
             }
         }
 
-        // 4. عملية الشحن (الدفع) - تم التحديث لتتوافق مع الكود الخلفي الجديد
-        window.initiateTopUp = async () => {
-            if(!currentUser) return;
-            
-            const btn = document.getElementById('payBtn');
-            const loader = document.getElementById('payLoader');
-            const amount = 100.00;
+        // محاكاة إرسال النموذج (للتجربة فقط)
+        const forms = document.querySelectorAll('form');
+        const toast = document.getElementById('toast');
 
-            btn.disabled = true;
-            loader.style.display = "inline-block";
-            showStatus("جاري الاتصال ببوابة الدفع...", "blue");
-
-            try {
-                // إعداد هيكلية البيانات كما يتوقعها الباك إند الجديد
-                const requestPayload = {
-                    operation: 'createSession', // نحدد العملية
-                    payload: {
-                        amount: amount,
-                        currency: "SAR",
-                        paymentOperation: "Pay", // مهم جداً
-                        appearance: { uiMode: "modal" },
-                        customer: { 
-                            email: currentUser.email,
-                            // يمكنك إضافة رقم الهاتف هنا إذا كان متوفراً
-                            // phoneNumber: "...", 
-                        },
-                        merchantReferenceId: currentUser.uid // نرسل معرف المستخدم كمرجع
-                    }
-                };
-
-                const response = await fetch('/.netlify/functions/create-payment-session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestPayload)
-                });
-
-                if (response.status === 404) {
-                    throw new Error("لم يتم العثور على دالة الدفع (تأكد من اسم الملف)");
-                }
-
-                const data = await response.json();
-
-                // التحقق من الاستجابة بناءً على هيكلية Geidea
-                if (data.session && data.session.id) {
-                    showStatus("نافذة الدفع جاهزة...", "green");
-                    
-                    if (typeof GeideaCheckout === 'undefined') {
-                        throw new Error("مكتبة الدفع غير محملة");
-                    }
-
-                    const payment = new GeideaCheckout(
-                        async function(success) {
-                            showStatus("✅ تم الدفع! جاري تحديث الرصيد...", "blue");
-                            
-                            // تحديث الرصيد في قاعدة البيانات
-                            const userRef = doc(db, "users", currentUser.uid);
-                            await updateDoc(userRef, {
-                                walletBalance: increment(amount),
-                                isPremium: true,
-                                lastPaymentDate: serverTimestamp()
-                            });
-
-                            await loadUserProfile(currentUser.uid);
-                            showStatus("تم الشحن بنجاح!", "green");
-                            btn.disabled = false;
-                            loader.style.display = "none";
-                        },
-                        function(err) {
-                            showStatus("❌ فشل الدفع", "red");
-                            btn.disabled = false;
-                            loader.style.display = "none";
-                        },
-                        function() {
-                            showStatus("⚠️ تم إلغاء العملية", "orange");
-                            btn.disabled = false;
-                            loader.style.display = "none";
-                        }
-                    );
-
-                    payment.startPayment(data.session.id);
-
-                } else {
-                    console.error("Server Error:", data);
-                    throw new Error(data.detailedResponseMessage || data.responseMessage || "فشل إنشاء الجلسة");
-                }
-
-            } catch (err) {
-                console.error(err);
-                showStatus(err.message, "red");
-                btn.disabled = false;
-                loader.style.display = "none";
-            }
-        };
-
-        function showStatus(msg, color) {
-            statusDiv.innerText = msg;
-            statusDiv.style.color = color || "black";
-        }
+        forms.forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault(); // منع إعادة تحميل الصفحة
+                
+                // إظهار رسالة النجاح
+                toast.classList.remove('opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0');
+                }, 3000);
+            });
+        });
     </script>
 </body>
 </html>
