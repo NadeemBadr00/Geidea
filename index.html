@@ -64,14 +64,19 @@
             { 
                 id: 'createQuickLink', 
                 name: 'Quick Payment Link', 
-                payload: { amount: 150, currency: "SAR", customer: { name: "Test User", phoneNumber: "500000000" } }
+                // تم إضافة phoneCountryCode لإصلاح الخطأ 400
+                payload: { 
+                    amount: 150, currency: "SAR", 
+                    customer: { name: "Test User", phoneNumber: "500000000", phoneCountryCode: "+966" } 
+                }
             },
             { 
                 id: 'createPaymentLink', 
                 name: 'Invoice Payment Link', 
+                // تم إضافة phoneCountryCode لإصلاح الخطأ 400
                 payload: { 
                     amount: 200, currency: "SAR", 
-                    customer: { name: "Test Invoice", email: "inv@test.com" },
+                    customer: { name: "Test Invoice", email: "inv@test.com", phoneNumber: "500000000", phoneCountryCode: "+966" },
                     eInvoiceDetails: { subtotal: 200, grandTotal: 200, extraChargesType: "Amount", invoiceDiscountType: "Amount" }
                 }
             },
