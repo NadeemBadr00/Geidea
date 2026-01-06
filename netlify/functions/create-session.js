@@ -26,44 +26,72 @@ exports.handler = async (event, context) => {
     const apiPassword = process.env.GEIDEA_API_PASSWORD;
 
     if (!publicKey || !apiPassword) {
-      throw new Error('Missing Keys');
+      throw new Error('Missing Keys in Netlify Environment Variables');
     }
 
+    // تجهيز Basic Auth
+    // يقوم بدمج المفتاحين وتشفيرهما base64 كما في التوثيق
     const authString = `${publicKey}:${apiPassword}`;
     const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
 
-    const data = JSON.parse(event.body);
-    const amount = parseFloat(data.amount) || 100;
-    const currency = data.currency || 'SAR';
+    const body = JSON.parse(event.body);
+    const amount = parseFloat(body.amount) || 100;
+    const currency = body.currency || 'SAR';
     
-    // توليد رقم طلب عشوائي يبدأ بـ ORD- مثل كود البايثون
-    const orderId = `ORD-${crypto.randomUUID().substring(0, 8)}`;
+    // توليد رقم مرجعي فريد
+    const merchantReferenceId = body.merchantReferenceId || `ORD-${crypto.randomUUID().substring(0, 15)}`;
     
-    // رابط العودة (استخدمنا رابط موقعك بدلاً من ngrok)
-    const returnUrl = "https://geideaa.netlify.app/";
+    // تنسيق التاريخ (Timestamp)
+    // نستخدم ISO String لأنه المعيار الأكثر قبولاً
+    const timestamp = new Date().toISOString();
 
-    // 2. تجهيز البيانات (مطابق تماماً لملف test.py)
-    // حذفنا timestamp وأي حقول إضافية
+    // ---------------------------------------------------------
+    // حساب التوقيع الإلكتروني (Signature) - V2 Requirement
+    // المعادلة القياسية: PublicKey + Amount (2 decimals) + Currency + MerchantReferenceId + Timestamp
+    // ---------------------------------------------------------
+    const amountStr = amount.toFixed(2); // لازم يكون رقمين عشريين بالضبط (مثلاً 100.00)
+    const dataToSign = `${publicKey}${amountStr}${currency}${merchantReferenceId}${timestamp}`;
+    
+    const signature = crypto.createHmac('sha256', apiPassword)
+                            .update(dataToSign)
+                            .digest('base64');
+
+    const returnUrl = "https://geideaa.netlify.app/"; // رابط العودة لموقعك
+    const callbackUrl = "https://geideaa.netlify.app/";
+
+    // تجهيز البيانات (Payload) لتتطابق تماماً مع مثال Documentation V2
     const requestData = JSON.stringify({
       amount: amount,
       currency: currency,
-      merchantReferenceId: orderId, // هذا الحقل مهم جداً
-      callbackUrl: returnUrl,
+      timestamp: timestamp,
+      merchantReferenceId: merchantReferenceId,
+      signature: signature,
+      paymentOperation: "Pay",
+      appearance: {
+        uiMode: "modal" // كما في المثال
+      },
+      language: "en",
+      callbackUrl: callbackUrl,
       returnUrl: returnUrl,
-      paymentOperation: "Pay"
+      // بيانات العميل (إجبارية أحياناً في V2، نضع بيانات افتراضية إذا لم تتوفر)
+      customer: {
+        email: "customer@email.com",
+        phoneNumber: "+966500000000",
+        phoneCountryCode: "+966"
+      },
+      initiatedBy: "Internet" // كما في المثال
     });
 
-    console.log(`Sending Payload:`, requestData);
+    console.log(`Sending V2 Request to Geidea:`, requestData);
 
     const options = {
-      hostname: 'api.ksamerchant.geidea.net', // السيرفر السعودي
-      path: '/payment-intent/api/v1/direct/session',
+      hostname: 'api.ksamerchant.geidea.net',
+      path: '/payment-intent/api/v2/direct/session', // رابط V2
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': authHeader,
-        'Content-Length': Buffer.byteLength(requestData),
-        'User-Agent': 'Nodejs-Netlify-Client' // إضافة هوية للمتصفح
+        'Content-Length': Buffer.byteLength(requestData)
       }
     };
 
@@ -75,8 +103,7 @@ exports.handler = async (event, context) => {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve(JSON.parse(body));
           } else {
-            console.error(`Geidea Error Status: ${res.statusCode}`);
-            console.error(`Geidea Error Body: ${body}`);
+            console.error(`Geidea V2 Error (${res.statusCode}):`, body);
             reject({ statusCode: res.statusCode, message: body });
           }
         });
@@ -98,20 +125,21 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('Final Error Catch:', error);
+    console.error('Function Error:', error);
     
-    let details = error.message;
-    // تنظيف رسالة الـ HTML الطويلة إذا ظهرت
-    if (typeof details === 'string' && details.includes('DOCTYPE')) {
-         details = 'Geidea Gateway Error (502) - Check Logs for Payload';
-    }
+    // محاولة تحسين رسالة الخطأ القادمة من Geidea
+    let errorDetail = error.message;
+    try {
+        const parsed = JSON.parse(error.message);
+        if(parsed.detailedResponseMessage) errorDetail = parsed.detailedResponseMessage;
+    } catch(e) {}
 
     return {
       statusCode: error.statusCode || 500,
       headers,
       body: JSON.stringify({
-        error: 'فشل الاتصال',
-        details: details
+        error: 'فشل الاتصال بـ V2',
+        details: errorDetail
       })
     };
   }
