@@ -5,12 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Geidea System Diagnostics (KSA Edition)</title>
     
-    <!-- FIX: إضافة معالج للأخطاء لمعرفة سبب فشل التحميل -->
-    <script 
-        src="https://ksamerchant.geidea.net/payment-intent/online/v1/geidea-checkout.min.js"
-        onerror="window.geideaScriptFailed = true;"
-        onload="window.geideaScriptLoaded = true;"
-    ></script>
+    <!-- 
+       FIX: تم التحديث لاستخدام الملف الذي وجدته
+       1. نحاول تحميل الملف المحلي (geideaCheckout.min.js)
+       2. إذا لم يوجد، نستخدم الرابط الذي وجدته أنت كبديل
+    -->
+    <script src="geideaCheckout.min.js" onerror="loadExternalScript()"></script>
+    
+    <script>
+        function loadExternalScript() {
+            console.warn("Local script not found, trying CDN...");
+            var script = document.createElement('script');
+            // تم تحديث الرابط للرابط الذي يعمل معك
+            script.src = "https://www.ksamerchant.geidea.net/hpp/geideaCheckout.min.js";
+            script.onload = function() { window.geideaScriptLoaded = true; };
+            script.onerror = function() { window.geideaScriptFailed = true; };
+            document.head.appendChild(script);
+        }
+        // حالة النجاح للملف المحلي
+        window.onload = function() {
+            if (typeof GeideaCheckout !== 'undefined') window.geideaScriptLoaded = true;
+        }
+    </script>
     
     <style>
         :root { --bg: #1e1e1e; --term-bg: #000; --text: #e0e0e0; --green: #00ff00; --red: #ff4444; --yellow: #ffff00; --blue: #4488ff; }
@@ -39,7 +55,9 @@
         <h1>Geidea Diagnostics (KSA 🇸🇦 Final)</h1>
         
         <div id="libAlert" class="alert-box">
-            ⚠️ <b>Warning:</b> Geidea Library failed to load! Please disable AdBlock or check your internet connection.
+            ⚠️ <b>Warning:</b> Geidea Library failed to load! <br>
+            1. Ensure <code>geideaCheckout.min.js</code> is in the same folder.<br>
+            2. Disable AdBlock or check internet connection.
         </div>
 
         <button id="startBtn" onclick="runFullDiagnostics()">⚡ START SAUDI TESTS</button>
@@ -115,9 +133,12 @@
 
         // التحقق الفوري عند تحميل الصفحة
         window.addEventListener('load', () => {
-            if (window.geideaScriptFailed || typeof GeideaCheckout === 'undefined') {
-                document.getElementById('libAlert').style.display = 'block';
-            }
+            // ننتظر قليلاً للتأكد من المحاولة الثانية للتحميل
+            setTimeout(() => {
+                if (window.geideaScriptFailed && typeof GeideaCheckout === 'undefined') {
+                    document.getElementById('libAlert').style.display = 'block';
+                }
+            }, 1000);
         });
 
         function log(message, type = 'info', details = null) {
@@ -156,11 +177,9 @@
             log("---------------------------------------------------");
 
             // فحص المكتبة بشكل أكثر دقة
-            if (window.geideaScriptFailed) {
-                log("❌ CRITICAL: Geidea JS Library BLOCKED by Browser/AdBlock.", "error");
-                log("   -> Please disable AdBlock or check your connection.", "warn");
-            } else if (typeof GeideaCheckout === 'undefined') {
-                log("❌ CRITICAL: Geidea JS Library NOT loaded yet (Check Internet).", "error");
+            if (typeof GeideaCheckout === 'undefined') {
+                log("❌ CRITICAL: Geidea JS Library NOT loaded.", "error");
+                log("   -> Trying to load from local file or CDN failed.", "warn");
             } else {
                 log("✅ Geidea JS Library Loaded successfully.", "success");
             }
