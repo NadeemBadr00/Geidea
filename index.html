@@ -3,24 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>دفع جيديا عبر Netlify</title>
-    <!-- مكتبة جيديا -->
-    <script src="https://www.geidea.net/js/v2/geidea.js"></script>
+    <title>تجربة دفع جييديا</title>
+    
+    <!-- مكتبة جييديا للسيرفر السعودي -->
+    <script src="https://ksamerchant.geidea.net/payment-intent/online/v1/geidea-checkout.min.js"></script>
+    
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f4f4f4; }
-        .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
-        button { padding: 15px 30px; font-size: 18px; background: #00c48d; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
-        button:disabled { background: #ccc; }
-        .price { font-size: 24px; font-weight: bold; color: #333; margin: 20px 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f4f4f9; }
+        .card { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%; }
+        button { background-color: #00d082; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; font-weight: bold; }
+        button:hover { background-color: #00a86b; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #status { margin-top: 15px; font-size: 14px; color: #555; }
+        .error { color: red; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h1>إتمام الشراء</h1>
-        <div class="price">500.00 EGP</div>
-        <button id="payBtn" onclick="initiatePayment()">ادفع الآن 💳</button>
-        <p id="status" style="margin-top:10px; font-size:14px; color:#666;"></p>
+        <h2>دفع إلكتروني</h2>
+        <p>المبلغ: <strong>100.00 SAR</strong></p>
+        <button id="payBtn" onclick="initiatePayment()">ادفع الآن</button>
+        <div id="status"></div>
     </div>
 
     <script>
@@ -30,53 +34,80 @@
             
             btn.disabled = true;
             btn.innerText = "جاري الاتصال...";
-            status.innerText = "جاري إنشاء جلسة دفع آمنة...";
+            status.innerHTML = "";
+            status.className = "";
 
             try {
-                // استدعاء دالة Netlify Function
-                // لاحظ المسار النسبي، سيعمل تلقائياً بعد الرفع
+                // 1. طلب إنشاء الجلسة من الباك إند
+                console.log("جاري طلب الجلسة...");
                 const response = await fetch('/.netlify/functions/create-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount: 500 }) 
+                    body: JSON.stringify({ 
+                        amount: 100, 
+                        currency: "SAR" 
+                    })
                 });
 
-                if (!response.ok) throw new Error("فشل الاتصال بالسيرفر");
-
                 const data = await response.json();
+                console.log("رد السيرفر الكامل:", data); // هام جداً للتنقيح
 
-                if (!data.sessionId) throw new Error("لم يتم استلام رقم الجلسة");
+                if (!response.ok) {
+                    throw new Error(data.details || data.error || "فشل الاتصال بالسيرفر");
+                }
 
-                status.innerText = "فتح نافذة الدفع...";
-
-                // بدء الدفع
-                const onSuccess = (data) => {
-                    alert("✅ تم الدفع بنجاح!");
-                    console.log(data);
-                    status.innerText = "تم الدفع بنجاح";
-                    btn.disabled = false;
-                    btn.innerText = "ادفع مرة أخرى";
-                };
+                // 2. استخراج رقم الجلسة بذكاء (الحل للمشكلة الحالية)
+                let sessionId = null;
                 
-                const onError = (data) => {
-                    alert("❌ فشلت العملية");
-                    console.log(data);
-                    status.innerText = "فشلت العملية، حاول مرة أخرى";
-                    btn.disabled = false;
-                    btn.innerText = "ادفع الآن";
-                };
-                
-                const payment = new GeideaCheckout(onSuccess, onError);
-                payment.startPayment(data.sessionId);
+                if (data.session && data.session.id) {
+                    sessionId = data.session.id; // الهيكل المعتاد للسيرفر السعودي
+                } else if (data.id) {
+                    sessionId = data.id; // هيكل بديل
+                }
 
-            } catch (err) {
-                console.error(err);
-                alert("حدث خطأ: " + err.message);
-                status.innerText = "حدث خطأ فني";
-                btn.disabled = false;
+                if (!sessionId) {
+                    console.error("البيانات المستلمة لا تحتوي على رقم جلسة:", data);
+                    throw new Error("لم يتم استلام رقم الجلسة (Session ID) من السيرفر. راجع الكونسول للتفاصيل.");
+                }
+
+                console.log("تم استلام رقم الجلسة بنجاح:", sessionId);
+                status.innerText = "تم استلام الجلسة، جاري فتح نافذة الدفع...";
+
+                // 3. فتح نافذة الدفع الخاصة بـ Geidea
+                const payment = new GeideaCheckout(onPaymentSuccess, onPaymentError, onPaymentCancel);
+                
+                payment.startPayment(sessionId);
+                
                 btn.innerText = "ادفع الآن";
+                btn.disabled = false;
+
+            } catch (error) {
+                console.error("خطأ:", error);
+                status.innerText = "خطأ: " + error.message;
+                status.className = "error";
+                btn.disabled = false;
+                btn.innerText = "حاول مرة أخرى";
             }
         }
+
+        // دوال الاستجابة (Callbacks)
+        function onPaymentSuccess(data) {
+            console.log("نجاح الدفع:", data);
+            document.getElementById('status').innerText = "تمت عملية الدفع بنجاح! ✅";
+            document.getElementById('status').style.color = "green";
+        }
+
+        function onPaymentError(error) {
+            console.log("فشل الدفع:", error);
+            document.getElementById('status').innerText = "فشلت عملية الدفع ❌";
+            document.getElementById('status').className = "error";
+        }
+
+        function onPaymentCancel() {
+            console.log("إلغاء الدفع");
+            document.getElementById('status').innerText = "تم إلغاء العملية";
+        }
     </script>
+
 </body>
 </html>
