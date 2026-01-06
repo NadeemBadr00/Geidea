@@ -1,23 +1,10 @@
 {
-  "name": "geidea-netlify-project",
+  "name": "geidea-payment-integration",
   "version": "1.0.0",
-  "description": "Geidea payment integration with Netlify Functions",
-  "main": "index.html",
+  "description": "Simple Geidea Payment Integration",
+  "private": true,
+  "dependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "axios": "^1.13.2"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/NadeemBadr00/Geidea.git"
-  },
-  "bugs": {
-    "url": "https://github.com/NadeemBadr00/Geidea/issues"
-  },
-  "homepage": "https://github.com/NadeemBadr00/Geidea#readme"
+    "build": "echo 'No build step required for static site'"
+  }
 }

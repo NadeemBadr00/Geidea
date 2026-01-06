@@ -1,0 +1,15 @@
+[build]
+  # المجلد الذي يحتوي على ملفات الموقع (index.html)
+  publish = "."
+  # مجلد الدوال
+  functions = "netlify/functions"
+  # أمر البناء (فارغ لأننا نستخدم HTML عادي)
+  command = "echo 'Skipping build'"
+
+[dev]
+  framework = "#static"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
