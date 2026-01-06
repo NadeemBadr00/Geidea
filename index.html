@@ -3,41 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تجربة دفع جييديا</title>
-    
-    <!-- 
-      تحديث هام: استخدام الرابط الرسمي العام لمكتبة الدفع
-      هذا الرابط يعمل مع مصر والسعودية (KSA Merchant)
-    -->
-    <script src="https://www.geidea.net/online/checkout/geidea-checkout.min.js"></script>
+    <title>تجربة دفع جييديا (KSA)</title>
     
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f4f4f9; }
         .card { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%; }
-        button { background-color: #00d082; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; font-weight: bold; }
+        button { background-color: #00d082; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; font-weight: bold; margin-top: 10px; }
         button:hover { background-color: #00a86b; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
-        #status { margin-top: 15px; font-size: 14px; color: #555; }
-        .error { color: red; }
+        #status { margin-top: 15px; font-size: 14px; color: #555; text-align: right; }
+        .error { color: red; font-weight: bold; }
+        .success { color: green; font-weight: bold; }
+        .script-status { font-size: 12px; color: #888; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h2>دفع إلكتروني</h2>
+        <h2>دفع إلكتروني (KSA)</h2>
+        <div id="scriptStatus" class="script-status">جاري تحميل مكتبة الدفع...</div>
         <p>المبلغ: <strong>100.00 SAR</strong></p>
-        <button id="payBtn" onclick="initiatePayment()">ادفع الآن</button>
+        
+        <!-- الزر معطل افتراضياً حتى يتم تحميل المكتبة -->
+        <button id="payBtn" onclick="initiatePayment()" disabled>جارِ التحميل...</button>
+        
         <div id="status"></div>
     </div>
 
+    <!-- سنقوم بتحميل السكربت برمجياً للتحكم في الأخطاء -->
     <script>
+        // روابط المكتبات المحتملة
+        const scripts = [
+            "https://ksamerchant.geidea.net/payment-intent/online/v1/geidea-checkout.min.js", // الرابط السعودي (الأرجح لمفاتيحك)
+            "https://www.geidea.net/online/checkout/geidea-checkout.min.js" // الرابط العام (احتياطي)
+        ];
+
+        let scriptLoaded = false;
+
+        function loadGeideaScript(index = 0) {
+            if (index >= scripts.length) {
+                document.getElementById('scriptStatus').innerHTML = "<span class='error'>فشل تحميل مكتبة Geidea من جميع المصادر.<br>يرجى تعطيل AdBlock أو التحقق من الإنترنت.</span>";
+                return;
+            }
+
+            const src = scripts[index];
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+
+            script.onload = () => {
+                console.log(`تم تحميل المكتبة بنجاح من: ${src}`);
+                if (typeof GeideaCheckout !== 'undefined') {
+                    scriptLoaded = true;
+                    document.getElementById('scriptStatus').innerHTML = "<span class='success'>تم تحميل نظام الدفع جاهز ✅</span>";
+                    document.getElementById('payBtn').disabled = false;
+                    document.getElementById('payBtn').innerText = "ادفع الآن";
+                } else {
+                    console.warn("المكتبة حملت لكن GeideaCheckout غير معرف. نجرب الرابط التالي...");
+                    loadGeideaScript(index + 1);
+                }
+            };
+
+            script.onerror = () => {
+                console.error(`فشل تحميل المكتبة من: ${src}`);
+                // تجربة الرابط التالي
+                loadGeideaScript(index + 1);
+            };
+
+            document.head.appendChild(script);
+        }
+
+        // بدء التحميل عند فتح الصفحة
+        loadGeideaScript();
+
         async function initiatePayment() {
             const btn = document.getElementById('payBtn');
             const status = document.getElementById('status');
             
-            // التحقق من أن المكتبة تم تحميلها
-            if (typeof GeideaCheckout === 'undefined') {
-                status.innerText = "خطأ: لم يتم تحميل مكتبة Geidea. تأكد من اتصال الإنترنت أو الرابط.";
+            if (!scriptLoaded || typeof GeideaCheckout === 'undefined') {
+                status.innerText = "خطأ: المكتبة غير جاهزة.";
                 status.className = "error";
                 return;
             }
@@ -48,7 +92,6 @@
             status.className = "";
 
             try {
-                // 1. طلب إنشاء الجلسة
                 console.log("جاري طلب الجلسة...");
                 const response = await fetch('/.netlify/functions/create-session', {
                     method: 'POST',
@@ -60,19 +103,16 @@
                 });
 
                 const data = await response.json();
-                console.log("رد السيرفر:", data); 
+                console.log("رد السيرفر:", data);
 
                 if (!response.ok) {
                     throw new Error(data.details || data.error || "فشل الاتصال بالسيرفر");
                 }
 
-                // 2. استخراج رقم الجلسة
                 let sessionId = null;
-                if (data.session && data.session.id) {
-                    sessionId = data.session.id;
-                } else if (data.id) {
-                    sessionId = data.id;
-                }
+                // البحث عن معرف الجلسة في كل الأماكن المحتملة
+                if (data.session && data.session.id) sessionId = data.session.id;
+                else if (data.id) sessionId = data.id;
 
                 if (!sessionId) {
                     throw new Error("لم يتم استلام رقم الجلسة (Session ID)");
@@ -81,9 +121,8 @@
                 console.log("Session ID:", sessionId);
                 status.innerText = "جاري فتح نافذة الدفع...";
 
-                // 3. فتح نافذة الدفع
+                // فتح نافذة الدفع
                 const payment = new GeideaCheckout(onPaymentSuccess, onPaymentError, onPaymentCancel);
-                
                 payment.startPayment(sessionId);
                 
                 btn.innerText = "ادفع الآن";
@@ -101,7 +140,7 @@
         function onPaymentSuccess(data) {
             console.log("Success:", data);
             document.getElementById('status').innerText = "تمت عملية الدفع بنجاح! ✅";
-            document.getElementById('status').style.color = "green";
+            document.getElementById('status').className = "success";
         }
 
         function onPaymentError(error) {
