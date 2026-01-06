@@ -4,7 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Geidea System Diagnostics (KSA Edition)</title>
-    <script src="https://ksamerchant.geidea.net/payment-intent/online/v1/geidea-checkout.min.js"></script>
+    
+    <!-- FIX: إضافة معالج للأخطاء لمعرفة سبب فشل التحميل -->
+    <script 
+        src="https://ksamerchant.geidea.net/payment-intent/online/v1/geidea-checkout.min.js"
+        onerror="window.geideaScriptFailed = true;"
+        onload="window.geideaScriptLoaded = true;"
+    ></script>
+    
     <style>
         :root { --bg: #1e1e1e; --term-bg: #000; --text: #e0e0e0; --green: #00ff00; --red: #ff4444; --yellow: #ffff00; --blue: #4488ff; }
         body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'Monaco', monospace; margin: 0; padding: 20px; font-size: 14px; }
@@ -21,6 +28,9 @@
         .status-warn { color: var(--yellow); }
         .details { margin-left: 70px; color: #888; font-size: 12px; white-space: pre-wrap; display: block; margin-top: 2px; }
         #copyBtn { position: absolute; top: 10px; right: 10px; background: #333; color: white; padding: 5px 10px; font-size: 12px; width: auto; border: 1px solid #555; cursor: pointer; }
+        
+        /* تنبيه للخطأ */
+        .alert-box { background: #ff444433; border: 1px solid #ff4444; color: #ffaaaa; padding: 10px; margin-bottom: 15px; display: none; }
     </style>
 </head>
 <body>
@@ -28,6 +38,10 @@
     <div class="container">
         <h1>Geidea Diagnostics (KSA 🇸🇦 Final)</h1>
         
+        <div id="libAlert" class="alert-box">
+            ⚠️ <b>Warning:</b> Geidea Library failed to load! Please disable AdBlock or check your internet connection.
+        </div>
+
         <button id="startBtn" onclick="runFullDiagnostics()">⚡ START SAUDI TESTS</button>
         
         <div class="terminal-window">
@@ -39,10 +53,8 @@
     </div>
 
     <script>
-        // تقسيم الرقم السعودي لتلبية متطلبات Geidea
-        // الرقم: +966550063691
         const SAUDI_COUNTRY_CODE = "+966";
-        const SAUDI_PHONE_NUMBER = "550063691"; // الرقم بدون الكود الدولي
+        const SAUDI_PHONE_NUMBER = "550063691"; 
 
         const OPERATIONS = [
             { 
@@ -75,38 +87,6 @@
                 }
             },
             { 
-                id: 'createPaymentLink', 
-                name: 'Invoice Payment Link', 
-                payload: { 
-                    amount: 0, 
-                    currency: "SAR", 
-                    customer: { 
-                        name: "KSA Invoice", 
-                        email: "invoice@geidea-ksa.com",
-                        phoneNumber: SAUDI_PHONE_NUMBER,
-                        phoneCountryCode: SAUDI_COUNTRY_CODE
-                    },
-                    // القائمة تحتوي منتج قيمته 200
-                    eInvoiceItems: [
-                        {
-                            item: "Test Product",
-                            description: "Diagnostics Test Item",
-                            price: 0,
-                            quantity: 1,
-                            total: 0,
-                            currency: "SAR"
-                        }
-                    ],
-                    eInvoiceDetails: { 
-                        // الآن يجب أن تتطابق المجاميع مع قيمة المنتج (200)
-                        subtotal: 0, 
-                        grandTotal: 0, 
-                        extraChargesType: "Amount", 
-                        invoiceDiscountType: "Amount" 
-                    }
-                }
-            },
-            { 
                 id: 'saveCard', 
                 name: 'Save Card (Tokenization)', 
                 payload: { currency: "SAR" }
@@ -132,6 +112,13 @@
 
         let logsText = "";
         let lastSessionId = null;
+
+        // التحقق الفوري عند تحميل الصفحة
+        window.addEventListener('load', () => {
+            if (window.geideaScriptFailed || typeof GeideaCheckout === 'undefined') {
+                document.getElementById('libAlert').style.display = 'block';
+            }
+        });
 
         function log(message, type = 'info', details = null) {
             const term = document.getElementById('terminalOutput');
@@ -164,14 +151,18 @@
             term.innerHTML = "";
             logsText = "";
             
-            log("🚀 Starting KSA Diagnostic Sequence (FINAL)...", "warn");
+            log("🚀 Starting KSA Diagnostic Sequence (Updated)...", "warn");
             log(`ℹ️ Phone: ${SAUDI_COUNTRY_CODE}-${SAUDI_PHONE_NUMBER}`, "info");
             log("---------------------------------------------------");
 
-            if (typeof GeideaCheckout === 'undefined') {
-                log("❌ CRITICAL: Geidea JS Library NOT loaded! AdBlock?", "error");
+            // فحص المكتبة بشكل أكثر دقة
+            if (window.geideaScriptFailed) {
+                log("❌ CRITICAL: Geidea JS Library BLOCKED by Browser/AdBlock.", "error");
+                log("   -> Please disable AdBlock or check your connection.", "warn");
+            } else if (typeof GeideaCheckout === 'undefined') {
+                log("❌ CRITICAL: Geidea JS Library NOT loaded yet (Check Internet).", "error");
             } else {
-                log("✅ Geidea JS Library Loaded.", "success");
+                log("✅ Geidea JS Library Loaded successfully.", "success");
             }
 
             for (let op of OPERATIONS) {
@@ -208,12 +199,17 @@
                         detailMsg += `\n🆔 Session ID: ${sessId}`;
                         
                         if (op.checkWindow) {
-                            detailMsg += `\n✅ Window Ready`;
-                            setTimeout(() => {
-                                const btnId = `btn-${sessId.substring(0,8)}`;
-                                const term = document.getElementById('terminalOutput');
-                                term.lastElementChild.innerHTML += ` <button id="${btnId}" style="width:auto; padding:2px 10px; font-size:10px; margin:0; display:inline;" onclick="openTestWindow('${sessId}')">Test Window</button>`;
-                            }, 100);
+                            // التحقق قبل إظهار الزر
+                            if (typeof GeideaCheckout !== 'undefined') {
+                                detailMsg += `\n✅ Window Ready`;
+                                setTimeout(() => {
+                                    const btnId = `btn-${sessId.substring(0,8)}`;
+                                    const term = document.getElementById('terminalOutput');
+                                    term.lastElementChild.innerHTML += ` <button id="${btnId}" style="width:auto; padding:2px 10px; font-size:10px; margin:0; display:inline;" onclick="openTestWindow('${sessId}')">Test Window</button>`;
+                                }, 100);
+                            } else {
+                                detailMsg += `\n⚠️ Session Created, but JS Lib missing (Cannot open window)`;
+                            }
                         }
                     }
                     
@@ -239,7 +235,7 @@
 
         function openTestWindow(sessionId) {
             if (typeof GeideaCheckout === 'undefined') {
-                alert("المكتبة غير محملة!");
+                alert("Cannot open payment window: Library not loaded (Check AdBlock)");
                 return;
             }
             const payment = new GeideaCheckout(
