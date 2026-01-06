@@ -1,16 +1,18 @@
 const https = require('https');
 const crypto = require('crypto');
 
-// --- قاعدة بيانات الروابط (Endpoints Map) ---
+// --- إعدادات العمليات (Endpoints) ---
 const ENDPOINTS = {
-  // === Checkout V2 ===
   'createSession': { 
     path: '/payment-intent/api/v2/direct/session', 
     method: 'POST', 
     host: 'api.ksamerchant.geidea.net', 
     sign: true 
   },
-  // ... (باقي العمليات كما هي) ...
+  'pay': { path: '/pgw/api/v2/direct/pay', method: 'POST', host: 'api.geidea.ae' },
+  'capture': { path: '/pgw/api/v1/direct/capture', method: 'POST', host: 'api.ksamerchant.geidea.net' },
+  'void': { path: '/pgw/api/v3/direct/void', method: 'POST', host: 'api.ksamerchant.geidea.net' },
+  'refund': { path: '/pgw/api/v2/direct/refund', method: 'POST', host: 'api.ksamerchant.geidea.net', sign: true },
 };
 
 exports.handler = async (event, context) => {
@@ -20,55 +22,67 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
   };
 
-  // 1. التعامل مع طلبات الـ OPTIONS (CORS)
+  // 1. CORS
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
 
   // ---------------------------------------------------------
-  // 2. (جديد) التعامل مع الـ GET: صفحة إعادة التوجيه (Redirect Page)
+  // 2. صفحة التشخيص (GET) - بتظهر لما ترجع من البنك
   // ---------------------------------------------------------
   if (event.httpMethod === 'GET') {
-    // استلام البيانات اللي راجعة من جيديا (כمثل responseCode, orderId, etc.)
     const queryParams = event.queryStringParameters || {};
-    
-    // تحويل البيانات لنص عشان نضيفها للرابط
     const queryString = new URLSearchParams(queryParams).toString();
-    
-    // رابط التطبيق (Deep Link)
-    // بنضيف platform=geidea عشان التطبيق يعرف إن ده رد من جيديا
     const appDeepLink = `rorkapp://payment-status?platform=geidea&${queryString}`;
 
-    // صفحة HTML بسيطة بتعمل توجيه تلقائي
+    // تحليل البيانات للعرض
+    const responseCode = queryParams.responseCode || 'N/A';
+    const responseMessage = queryParams.responseMessage || 'No message';
+    const isSuccess = responseCode === '000' || responseCode === '0';
+    const statusColor = isSuccess ? '#10B981' : '#EF4444';
+    const statusText = isSuccess ? 'عملية ناجحة (Success)' : 'عملية فاشلة (Failed)';
+
+    // HTML مع جدول تفاصيل للإيرور
     const html = `
       <!DOCTYPE html>
       <html lang="ar" dir="rtl">
       <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>جاري العودة للتطبيق...</title>
+          <title>Geidea Debugger</title>
           <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-              .loader { border: 4px solid #f3f3f3; border-top: 4px solid #10B981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
-              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-              .btn { margin-top: 20px; padding: 12px 24px; background-color: #10B981; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }
+              body { font-family: monospace; background-color: #1a1a1a; color: #e0e0e0; padding: 20px; text-align: center; }
+              .card { background: #2d2d2d; padding: 20px; border-radius: 10px; border: 2px solid ${statusColor}; max-width: 500px; margin: 0 auto; }
+              h2 { color: ${statusColor}; margin-top: 0; }
+              table { width: 100%; text-align: left; margin: 20px 0; border-collapse: collapse; }
+              th, td { padding: 8px; border-bottom: 1px solid #444; }
+              th { color: #888; }
+              .btn { display: block; margin-top: 20px; padding: 15px; background-color: ${statusColor}; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-family: sans-serif; }
+              .raw-data { background: #000; padding: 10px; font-size: 10px; color: #0f0; text-align: left; overflow-x: auto; margin-top: 20px; }
           </style>
           <script>
               window.onload = function() {
-                  // محاولة التوجيه التلقائي
-                  window.location.href = "${appDeepLink}";
-                  
-                  // لو فشل التوجيه التلقائي بعد ثانية، نوضحه للمستخدم
+                  // تأخير التوجيه قليلاً عشان تلحق تشوف الإيرور لو فيه مشكلة
                   setTimeout(function() {
-                      document.getElementById('manual-link').style.display = 'block';
-                  }, 1000);
+                      window.location.href = "${appDeepLink}";
+                  }, 1500);
               };
           </script>
       </head>
       <body>
-          <div class="loader"></div>
-          <h3>جاري إعادتك للتطبيق...</h3>
-          <p style="color: #666;">تمت معالجة العملية، يرجى الانتظار.</p>
-          
-          <a id="manual-link" href="${appDeepLink}" class="btn" style="display: none;">اضغط هنا للعودة</a>
+          <div class="card">
+              <h2>${statusText}</h2>
+              <table>
+                  <tr><th>Code</th><td>${responseCode}</td></tr>
+                  <tr><th>Message</th><td>${responseMessage}</td></tr>
+                  <tr><th>Order ID</th><td>${queryParams.orderId || 'N/A'}</td></tr>
+              </table>
+              
+              <a href="${appDeepLink}" class="btn">العودة للتطبيق فوراً</a>
+
+              <div class="raw-data">
+                  <strong>Raw Params:</strong><br>
+                  ${JSON.stringify(queryParams, null, 2)}
+              </div>
+          </div>
       </body>
       </html>
     `;
@@ -81,7 +95,7 @@ exports.handler = async (event, context) => {
   }
 
   // ---------------------------------------------------------
-  // 3. التعامل مع الـ POST: إنشاء الجلسة (Proxy Logic)
+  // 3. إنشاء الجلسة (POST) - مع طباعة أخطاء تفصيلية
   // ---------------------------------------------------------
   if (event.httpMethod !== 'POST') {
       return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
@@ -91,39 +105,40 @@ exports.handler = async (event, context) => {
     const publicKey = process.env.GEIDEA_PUBLIC_KEY;
     const apiPassword = process.env.GEIDEA_API_PASSWORD;
 
-    if (!publicKey || !apiPassword) throw new Error('Missing Keys in Netlify');
+    // (DEBUG STEP 1)
+    if (!publicKey || !apiPassword) {
+        console.error('MISSING KEYS');
+        return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server Config Error: Keys missing in Netlify' }) };
+    }
 
-    const incomingData = JSON.parse(event.body);
+    let incomingData;
+    try {
+        incomingData = JSON.parse(event.body);
+    } catch (e) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON in request body' }) };
+    }
+
     const operation = incomingData.operation || 'createSession';
     const payload = incomingData.payload || {};
-    
-    // ... (باقي كود التوقيع والاتصال بجيديا كما هو بدون تغيير) ...
-    // لقد قمت بنسخ الجزء الخاص بالمنطق فقط، الكود الأصلي للاتصال بجيديا سيبقى كما هو في الأسفل
-    
     const config = ENDPOINTS[operation];
-    if (!config) throw new Error(`Unknown operation: ${operation}`);
+    
+    if (!config) return { statusCode: 400, headers, body: JSON.stringify({ error: `Unknown operation: ${operation}` }) };
 
+    // ... (نفس منطق التجهيز السابق) ...
     let finalPath = config.path;
     if (payload.pathParams) {
-        Object.keys(payload.pathParams).forEach(key => {
-            finalPath = finalPath.replace(`{${key}}`, payload.pathParams[key]);
-        });
+        Object.keys(payload.pathParams).forEach(key => finalPath = finalPath.replace(`{${key}}`, payload.pathParams[key]));
     }
     const { pathParams, queryParams, ...bodyData } = payload;
+    if (queryParams) finalPath += `?${new URLSearchParams(queryParams).toString()}`;
 
-    if (queryParams) {
-        const query = new URLSearchParams(queryParams).toString();
-        finalPath += `?${query}`;
-    }
-
+    // التوقيع
     const timestamp = new Date().toISOString(); 
     let finalBody = { ...bodyData };
-
     if (config.sign) {
         finalBody.timestamp = timestamp;
         const currency = finalBody.currency || 'SAR';
         const amount = finalBody.amount ? parseFloat(finalBody.amount) : 0;
-        
         if (!finalBody.merchantReferenceId && operation.includes('create')) {
             finalBody.merchantReferenceId = `REF-${crypto.randomUUID().substring(0, 12)}`;
         }
@@ -134,12 +149,12 @@ exports.handler = async (event, context) => {
         finalBody.signature = signature;
     }
 
-    const authString = `${publicKey}:${apiPassword}`;
-    const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
-
-    console.log(`[${operation}] Payload:`, JSON.stringify(finalBody));
-
+    const authHeader = `Basic ${Buffer.from(`${publicKey}:${apiPassword}`).toString('base64')}`;
     const requestData = JSON.stringify(finalBody);
+
+    // (DEBUG STEP 2) Log outgoing request (without secrets)
+    console.log(`Sending to Geidea [${config.host}]:`, finalBody.merchantReferenceId);
+
     const options = {
       hostname: config.host,
       path: finalPath,
@@ -162,7 +177,9 @@ exports.handler = async (event, context) => {
              json._statusCode = res.statusCode; 
              resolve(json);
           } catch (e) {
-             resolve({ _statusCode: res.statusCode, rawBody: body });
+             // لو الرد مش JSON (مثلاً HTML error page من جيديا)
+             console.error('Geidea Non-JSON Response:', body);
+             resolve({ _statusCode: res.statusCode, error: 'Non-JSON response from Geidea', rawBody: body });
           }
         });
       });
@@ -178,6 +195,7 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
+    console.error('Handler Error:', error);
+    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message, stack: error.stack }) };
   }
 };
