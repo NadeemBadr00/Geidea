@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Simple Geidea Payment Integration",
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "firebase": "^12.7.0"
+  },
   "scripts": {
     "build": "echo 'No build step required for static site'"
   }
