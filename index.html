@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دفع جيديا عبر Netlify</title>
+    <!-- مكتبة جيديا -->
+    <script src="https://www.geidea.net/js/v2/geidea.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f4f4f4; }
+        .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+        button { padding: 15px 30px; font-size: 18px; background: #00c48d; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
+        button:disabled { background: #ccc; }
+        .price { font-size: 24px; font-weight: bold; color: #333; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>إتمام الشراء</h1>
+        <div class="price">500.00 EGP</div>
+        <button id="payBtn" onclick="initiatePayment()">ادفع الآن 💳</button>
+        <p id="status" style="margin-top:10px; font-size:14px; color:#666;"></p>
+    </div>
+
+    <script>
+        async function initiatePayment() {
+            const btn = document.getElementById('payBtn');
+            const status = document.getElementById('status');
+            
+            btn.disabled = true;
+            btn.innerText = "جاري الاتصال...";
+            status.innerText = "جاري إنشاء جلسة دفع آمنة...";
+
+            try {
+                // استدعاء دالة Netlify Function
+                // لاحظ المسار النسبي، سيعمل تلقائياً بعد الرفع
+                const response = await fetch('/.netlify/functions/create-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: 500 }) 
+                });
+
+                if (!response.ok) throw new Error("فشل الاتصال بالسيرفر");
+
+                const data = await response.json();
+
+                if (!data.sessionId) throw new Error("لم يتم استلام رقم الجلسة");
+
+                status.innerText = "فتح نافذة الدفع...";
+
+                // بدء الدفع
+                const onSuccess = (data) => {
+                    alert("✅ تم الدفع بنجاح!");
+                    console.log(data);
+                    status.innerText = "تم الدفع بنجاح";
+                    btn.disabled = false;
+                    btn.innerText = "ادفع مرة أخرى";
+                };
+                
+                const onError = (data) => {
+                    alert("❌ فشلت العملية");
+                    console.log(data);
+                    status.innerText = "فشلت العملية، حاول مرة أخرى";
+                    btn.disabled = false;
+                    btn.innerText = "ادفع الآن";
+                };
+                
+                const payment = new GeideaCheckout(onSuccess, onError);
+                payment.startPayment(data.sessionId);
+
+            } catch (err) {
+                console.error(err);
+                alert("حدث خطأ: " + err.message);
+                status.innerText = "حدث خطأ فني";
+                btn.disabled = false;
+                btn.innerText = "ادفع الآن";
+            }
+        }
+    </script>
+</body>
+</html>
