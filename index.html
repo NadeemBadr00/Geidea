@@ -86,7 +86,6 @@
                         phoneNumber: SAUDI_PHONE_NUMBER,
                         phoneCountryCode: SAUDI_COUNTRY_CODE
                     },
-                    // تم إضافة eInvoiceItems لتصحيح معادلة المجموع
                     eInvoiceItems: [
                         {
                             item: "Test Product",
@@ -98,8 +97,9 @@
                         }
                     ],
                     eInvoiceDetails: { 
-                        subtotal: 200, 
-                        grandTotal: 200, 
+                        // FIX: السيرفر يطلب صراحة أن تكون هذه القيم 0
+                        subtotal: 0, 
+                        grandTotal: 0, 
                         extraChargesType: "Amount", 
                         invoiceDiscountType: "Amount" 
                     }
