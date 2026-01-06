@@ -1,126 +1,278 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إتمام الدفع الآمن</title>
+    <title>Geidea System Diagnostics (KSA Edition)</title>
     
     <!-- 
-      تعديل هام: استدعاء المكتبة من الملف المحلي بدلاً من الرابط الخارجي
-      تأكد أن ملف geideaCheckout.min.js موجود في نفس المجلد بجوار index.html
+       FIX: تم التحديث لاستخدام الملف الذي وجدته
+       1. نحاول تحميل الملف المحلي (geideaCheckout.min.js)
+       2. إذا لم يوجد، نستخدم الرابط الذي وجدته أنت كبديل
     -->
-    <script src="geideaCheckout.min.js"></script>
+    <script src="geideaCheckout.min.js" onerror="loadExternalScript()"></script>
+    
+    <script>
+        function loadExternalScript() {
+            console.warn("Local script not found, trying CDN...");
+            var script = document.createElement('script');
+            // تم تحديث الرابط للرابط الذي يعمل معك
+            script.src = "https://www.ksamerchant.geidea.net/hpp/geideaCheckout.min.js";
+            script.onload = function() { window.geideaScriptLoaded = true; };
+            script.onerror = function() { window.geideaScriptFailed = true; };
+            document.head.appendChild(script);
+        }
+        // حالة النجاح للملف المحلي
+        window.onload = function() {
+            if (typeof GeideaCheckout !== 'undefined') window.geideaScriptLoaded = true;
+        }
+    </script>
     
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f8f9fa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .checkout-card { background: white; width: 100%; max-width: 400px; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; }
-        .product-img { width: 80px; height: 80px; background: #e9ecef; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 30px; }
-        h2 { margin: 0 0 10px; color: #333; }
-        .price { font-size: 32px; color: #00d082; font-weight: 700; margin: 20px 0; }
-        .desc { color: #666; font-size: 14px; margin-bottom: 30px; }
+        :root { --bg: #1e1e1e; --term-bg: #000; --text: #e0e0e0; --green: #00ff00; --red: #ff4444; --yellow: #ffff00; --blue: #4488ff; }
+        body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'Monaco', monospace; margin: 0; padding: 20px; font-size: 14px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { color: var(--green); text-align: center; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        button { background: var(--green); color: black; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; border-radius: 5px; text-transform: uppercase; transition: 0.2s; margin-bottom: 20px; }
+        button:hover { background: #00cc00; }
+        button:disabled { background: #555; cursor: wait; }
+        .terminal-window { background: var(--term-bg); border: 2px solid #333; border-radius: 6px; padding: 15px; height: 600px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
+        .log-entry { margin-bottom: 8px; border-bottom: 1px dashed #333; padding-bottom: 5px; }
+        .log-time { color: #666; margin-right: 10px; }
+        .status-ok { color: var(--green); font-weight: bold; }
+        .status-fail { color: var(--red); font-weight: bold; }
+        .status-warn { color: var(--yellow); }
+        .details { margin-left: 70px; color: #888; font-size: 12px; white-space: pre-wrap; display: block; margin-top: 2px; }
+        #copyBtn { position: absolute; top: 10px; right: 10px; background: #333; color: white; padding: 5px 10px; font-size: 12px; width: auto; border: 1px solid #555; cursor: pointer; }
         
-        button { background-color: #00d082; color: white; border: none; padding: 18px; width: 100%; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0, 208, 130, 0.3); }
-        button:hover { background-color: #00b06d; transform: translateY(-2px); }
-        button:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
-        
-        #message { margin-top: 20px; font-size: 14px; min-height: 20px; }
-        .success { color: #28a745; }
-        .error { color: #dc3545; }
+        /* تنبيه للخطأ */
+        .alert-box { background: #ff444433; border: 1px solid #ff4444; color: #ffaaaa; padding: 10px; margin-bottom: 15px; display: none; }
     </style>
 </head>
 <body>
 
-    <div class="checkout-card">
-        <div class="product-img">🛍️</div>
-        <h2>فاتورة مشتريات</h2>
-        <p class="desc">المنتج: اشتراك باقة بريميوم</p>
-        <div class="price">100.00 SAR</div>
+    <div class="container">
+        <h1>Geidea Diagnostics (KSA 🇸🇦 Final)</h1>
         
-        <button id="payBtn" onclick="startPayment()">ادفع الآن 🔒</button>
-        <div id="message"></div>
+        <div id="libAlert" class="alert-box">
+            ⚠️ <b>Warning:</b> Geidea Library failed to load! <br>
+            1. Ensure <code>geideaCheckout.min.js</code> is in the same folder.<br>
+            2. Disable AdBlock or check internet connection.
+        </div>
+
+        <button id="startBtn" onclick="runFullDiagnostics()">⚡ START SAUDI TESTS</button>
+        
+        <div class="terminal-window">
+            <button id="copyBtn" onclick="copyLogs()">Copy Logs</button>
+            <div id="terminalOutput">
+                <div class="log-entry">> Ready. Click Start...</div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // التحقق من تحميل المكتبة المحلية عند فتح الصفحة
-        window.onload = function() {
-            if (typeof GeideaCheckout === 'undefined') {
-                document.getElementById('message').innerHTML = '<span class="error">خطأ: لم يتم العثور على ملف geideaCheckout.min.js<br>تأكد من رفعه بجوار ملف index.html</span>';
-                document.getElementById('payBtn').disabled = true;
-            }
-        };
+        const SAUDI_COUNTRY_CODE = "+966";
+        const SAUDI_PHONE_NUMBER = "550063691"; 
 
-        async function startPayment() {
-            const btn = document.getElementById('payBtn');
-            const msg = document.getElementById('message');
+        const OPERATIONS = [
+            { 
+                id: 'createSession', 
+                name: 'Checkout V2 Session', 
+                payload: { 
+                    amount: 100, 
+                    currency: "SAR", 
+                    paymentOperation: "Pay", 
+                    appearance: { uiMode: "modal" }, 
+                    customer: { 
+                        email: "test@geidea-ksa.com",
+                        phoneNumber: SAUDI_PHONE_NUMBER,
+                        phoneCountryCode: SAUDI_COUNTRY_CODE
+                    } 
+                },
+                checkWindow: true 
+            },
+            { 
+                id: 'createQuickLink', 
+                name: 'Quick Payment Link (SMS)', 
+                payload: { 
+                    amount: 150, 
+                    currency: "SAR", 
+                    customer: { 
+                        name: "KSA Customer", 
+                        phoneNumber: SAUDI_PHONE_NUMBER,
+                        phoneCountryCode: SAUDI_COUNTRY_CODE
+                    } 
+                }
+            },
+            { 
+                id: 'saveCard', 
+                name: 'Save Card (Tokenization)', 
+                payload: { currency: "SAR" }
+            },
+            { 
+                id: 'createSubscription', 
+                name: 'Create Subscription', 
+                payload: { 
+                    recurringPaymentAmount: 50, 
+                    currency: "SAR", 
+                    cycleInterval: "month", 
+                    cycleFrequency: 12, 
+                    typeOfPayment: "RecurringPayment", 
+                    isFirstPmtPBL: false, 
+                    customerRequest: { 
+                        email: "sub@geidea-ksa.com",
+                        phoneNumber: SAUDI_PHONE_NUMBER,
+                        phoneCountryCode: SAUDI_COUNTRY_CODE
+                    } 
+                }
+            }
+        ];
+
+        let logsText = "";
+        let lastSessionId = null;
+
+        // التحقق الفوري عند تحميل الصفحة
+        window.addEventListener('load', () => {
+            // ننتظر قليلاً للتأكد من المحاولة الثانية للتحميل
+            setTimeout(() => {
+                if (window.geideaScriptFailed && typeof GeideaCheckout === 'undefined') {
+                    document.getElementById('libAlert').style.display = 'block';
+                }
+            }, 1000);
+        });
+
+        function log(message, type = 'info', details = null) {
+            const term = document.getElementById('terminalOutput');
+            const time = new Date().toLocaleTimeString();
+            let colorClass = '';
+            
+            if (type === 'success') colorClass = 'status-ok';
+            else if (type === 'error') colorClass = 'status-fail';
+            else if (type === 'warn') colorClass = 'status-warn';
+
+            let html = `<div class="log-entry">
+                <span class="log-time">[${time}]</span>
+                <span class="${colorClass}">${message}</span>`;
+            
+            if (details) {
+                html += `<span class="details">${details}</span>`;
+            }
+            html += `</div>`;
+
+            term.innerHTML += html;
+            term.scrollTop = term.scrollHeight;
+            logsText += `[${time}] ${message}\n${details ? details + '\n' : ''}`;
+        }
+
+        async function runFullDiagnostics() {
+            const btn = document.getElementById('startBtn');
+            const term = document.getElementById('terminalOutput');
             
             btn.disabled = true;
-            btn.innerText = "جاري الاتصال الآمن...";
-            msg.innerText = "";
+            term.innerHTML = "";
+            logsText = "";
+            
+            log("🚀 Starting KSA Diagnostic Sequence (Updated)...", "warn");
+            log(`ℹ️ Phone: ${SAUDI_COUNTRY_CODE}-${SAUDI_PHONE_NUMBER}`, "info");
+            log("---------------------------------------------------");
+
+            // فحص المكتبة بشكل أكثر دقة
+            if (typeof GeideaCheckout === 'undefined') {
+                log("❌ CRITICAL: Geidea JS Library NOT loaded.", "error");
+                log("   -> Trying to load from local file or CDN failed.", "warn");
+            } else {
+                log("✅ Geidea JS Library Loaded successfully.", "success");
+            }
+
+            for (let op of OPERATIONS) {
+                await runSingleTest(op);
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            log("---------------------------------------------------");
+            log("🏁 Diagnostic Complete.", "warn");
+            btn.disabled = false;
+        }
+
+        async function runSingleTest(op) {
+            log(`🔄 Testing: ${op.name} [${op.id}]...`, "info");
+
+            let currentPayload = { ...op.payload };
 
             try {
-                // استخدام الباك إند الموجه (Router)
-                const response = await fetch('/.netlify/functions/create-session', {
+                const res = await fetch('/.netlify/functions/create-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        operation: 'createSession',
-                        payload: {
-                            amount: 100, 
-                            currency: "SAR",
-                            paymentOperation: "Pay",
-                            appearance: { uiMode: "modal" },
-                            customer: { email: "customer@example.com" }
-                        }
-                    })
+                    body: JSON.stringify({ operation: op.id, payload: currentPayload })
                 });
 
-                const data = await response.json();
+                const data = await res.json();
+                const status = data._statusCode || res.status;
 
-                if (!response.ok || (data._statusCode && data._statusCode >= 400)) {
-                    throw new Error(data.detailedResponseMessage || "فشل الاتصال بمزود الدفع");
-                }
+                if (status >= 200 && status < 300) {
+                    let detailMsg = `Status: ${status} OK`;
+                    const sessId = data.session?.id || data.id;
+                    
+                    if (sessId && op.id === 'createSession') {
+                        lastSessionId = sessId;
+                        detailMsg += `\n🆔 Session ID: ${sessId}`;
+                        
+                        if (op.checkWindow) {
+                            // التحقق قبل إظهار الزر
+                            if (typeof GeideaCheckout !== 'undefined') {
+                                detailMsg += `\n✅ Window Ready`;
+                                setTimeout(() => {
+                                    const btnId = `btn-${sessId.substring(0,8)}`;
+                                    const term = document.getElementById('terminalOutput');
+                                    term.lastElementChild.innerHTML += ` <button id="${btnId}" style="width:auto; padding:2px 10px; font-size:10px; margin:0; display:inline;" onclick="openTestWindow('${sessId}')">Test Window</button>`;
+                                }, 100);
+                            } else {
+                                detailMsg += `\n⚠️ Session Created, but JS Lib missing (Cannot open window)`;
+                            }
+                        }
+                    }
+                    
+                    if (data.paymentUrl) {
+                        detailMsg += `\n🔗 URL: ${data.paymentUrl}`;
+                    }
 
-                const sessionId = data.session?.id || data.id;
-                
-                if (!sessionId) {
-                    throw new Error("لم يتم استلام رقم الجلسة (Session ID)");
-                }
+                    log(`✅ ${op.name}: SUCCESS`, "success", detailMsg);
 
-                if (typeof GeideaCheckout !== 'undefined') {
-                    const payment = new GeideaCheckout(onSuccess, onError, onCancel);
-                    payment.startPayment(sessionId);
-                    btn.innerText = "أكمل الدفع في النافذة...";
                 } else {
-                    throw new Error("ملف المكتبة المحلية غير محمل.");
+                    let errorMsg = JSON.stringify(data);
+                    if (data.detailedResponseMessage) errorMsg = data.detailedResponseMessage;
+                    else if (data.responseMessage) errorMsg = data.responseMessage;
+                    else if (data.errors) errorMsg = JSON.stringify(data.errors);
+                    
+                    log(`❌ ${op.name}: FAILED (${status})`, "error", `Server Msg: ${errorMsg}\nPayload: ${JSON.stringify(currentPayload)}`);
                 }
 
             } catch (err) {
-                console.error(err);
-                msg.innerHTML = `<span class="error">${err.message}</span>`;
-                btn.disabled = false;
-                btn.innerText = "حاول مرة أخرى";
+                log(`❌ ${op.name}: NETWORK ERROR`, "error", err.message);
             }
         }
 
-        function onSuccess(data) {
-            document.getElementById('message').innerHTML = '<span class="success">تم الدفع بنجاح! ✅</span>';
-            document.getElementById('payBtn').innerText = "تمت العملية";
-            console.log("Success:", data);
+        function openTestWindow(sessionId) {
+            if (typeof GeideaCheckout === 'undefined') {
+                alert("Cannot open payment window: Library not loaded (Check AdBlock)");
+                return;
+            }
+            const payment = new GeideaCheckout(
+                s => console.log(s), 
+                e => console.error(e), 
+                () => console.log("Cancel")
+            );
+            payment.startPayment(sessionId);
         }
 
-        function onError(data) {
-            document.getElementById('message').innerHTML = '<span class="error">فشلت عملية الدفع ❌</span>';
-            document.getElementById('payBtn').disabled = false;
-            document.getElementById('payBtn').innerText = "ادفع الآن 🔒";
-            console.log("Error:", data);
-        }
-
-        function onCancel() {
-            document.getElementById('message').innerText = "تم إلغاء العملية";
-            document.getElementById('payBtn').disabled = false;
-            document.getElementById('payBtn').innerText = "ادفع الآن 🔒";
+        function copyLogs() {
+            navigator.clipboard.writeText(logsText).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.innerText = "Copied!";
+                setTimeout(() => btn.innerText = "Copy Logs", 2000);
+            });
         }
     </script>
-
 </body>
 </html>
+<!-- fef -->
