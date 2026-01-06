@@ -1,57 +1,121 @@
-const axios = require('axios');
+const https = require('https');
 
-// إعدادات جيديا
-const GEIDEA_CONFIG = {
-    publicKey: '88963e28-ee73-4eb7-b0b6-6f1bf6938418',
-    apiPassword: 'd3e031a3-e6fa-4296-9363-c5debf587f65',
-    apiUrl: '[https://api.geidea.net/payment-intent/api/v1/direct/session](https://api.geidea.net/payment-intent/api/v1/direct/session)',
-    currency: 'EGP'
-};
+exports.handler = async (event, context) => {
+  // 1. إعدادات CORS
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  };
 
-exports.handler = async function(event, context) {
-    // التأكد من أن الطلب هو POST
-    if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, body: 'Method Not Allowed' };
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method Not Allowed' })
+    };
+  }
+
+  try {
+    // 2. قراءة المفاتيح الجديدة (Public Key و Password)
+    const publicKey = process.env.GEIDEA_PUBLIC_KEY;
+    const apiPassword = process.env.GEIDEA_API_PASSWORD;
+
+    // التحقق من وجود المفاتيح
+    if (!publicKey || !apiPassword) {
+      console.error('Missing configuration: Public Key or API Password not found.');
+      throw new Error('خطأ في إعدادات السيرفر: مفاتيح الربط غير موجودة');
     }
 
-    try {
-        // قراءة البيانات المرسلة من الفرونت إند
-        const body = JSON.parse(event.body || '{}');
-        const amount = body.amount || 100.00;
+    // 3. إنشاء كود المصادقة (Basic Auth)
+    // Geidea تطلب: Basic Base64(PublicKey:Password)
+    const authString = `${publicKey}:${apiPassword}`;
+    const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
 
-        // تجهيز بيانات الطلب لجيديا
-        const payload = {
-            amount: parseFloat(amount),
-            currency: GEIDEA_CONFIG.currency,
-            // ---------------------------------------------------------
-            // تم تحديث الرابط هنا ليتناسب مع موقعك على Netlify
-            // ---------------------------------------------------------
-            callbackUrl: "[https://geideaa.netlify.app/success](https://geideaa.netlify.app/success)", 
-            timestamp: new Date().toISOString()
-        };
+    // 4. قراءة البيانات من الفرونت
+    const data = JSON.parse(event.body);
+    const amount = data.amount || 100;
+    const currency = data.currency || 'SAR';
 
-        // التشفير (Basic Auth)
-        const auth = Buffer.from(`${GEIDEA_CONFIG.publicKey}:${GEIDEA_CONFIG.apiPassword}`).toString('base64');
+    console.log('جاري الاتصال بـ Geidea...', { amount, currency });
 
-        // الاتصال بجيديا
-        const response = await axios.post(GEIDEA_CONFIG.apiUrl, payload, {
-            headers: {
-                'Authorization': `Basic ${auth}`,
-                'Content-Type': 'application/json'
-            }
+    // 5. إعداد الطلب
+    const requestData = JSON.stringify({
+      amount: amount,
+      currency: currency,
+      timestamp: new Date().toISOString()
+      // أضف هنا callbackUrl إذا تطلبه الأمر
+      // callbackUrl: "https://yoursite.com/callback"
+    });
+
+    const options = {
+      hostname: 'api.geidea.net',
+      path: '/pgw/api/v1/direct/session', // تأكد أن هذا هو المسار الصحيح لحسابك
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader, // استخدام الهيدر الذي أنشأناه
+        'Content-Length': Buffer.byteLength(requestData)
+      }
+    };
+
+    const responseBody = await new Promise((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        let body = '';
+        res.on('data', (chunk) => (body += chunk));
+        res.on('end', () => {
+          // التحقق من نجاح الطلب من وجهة نظر HTTP
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(JSON.parse(body));
+          } else {
+            // إذا ردت Geidea بخطأ، نعرضه
+            console.error(`Geidea Error (${res.statusCode}):`, body);
+            reject({ statusCode: res.statusCode, message: body });
+          }
         });
+      });
 
-        // النجاح: إرجاع رقم الجلسة
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ sessionId: response.data.session.id })
-        };
+      req.on('error', (err) => {
+        console.error('Network Error:', err);
+        reject(err);
+      });
 
-    } catch (error) {
-        console.error("Geidea Error:", error.response ? error.response.data : error.message);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: "Failed to create session" })
-        };
-    }
+      req.write(requestData);
+      req.end();
+    });
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(responseBody)
+    };
+
+  } catch (error) {
+    console.error('فشل إنشاء الجلسة:', error);
+    
+    // محاولة استخراج رسالة خطأ مفيدة
+    let errorMessage = 'فشل الاتصال بالسيرفر';
+    let errorDetails = error.message;
+
+    // إذا كان الخطأ قادماً من Geidea (عبارة عن JSON) نحاول قراءته
+    try {
+        if (typeof error.message === 'string' && error.message.startsWith('{')) {
+            const parsed = JSON.parse(error.message);
+            errorDetails = parsed.detail || parsed.title || error.message;
+        }
+    } catch (e) {}
+
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: errorMessage,
+        details: errorDetails
+      })
+    };
+  }
 };
