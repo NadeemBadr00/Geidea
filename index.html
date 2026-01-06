@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول وإنشاء حساب</title>
+    <title>Smart Pen - بوابة الدفع الآمنة</title>
     
     <!-- خط تجوال من جوجل -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -23,12 +23,17 @@
             flex-direction: column;
             height: 100vh;
             margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); /* ألوان زرقاء احترافية لـ Smart Pen */
         }
 
         h1 {
             font-weight: bold;
             margin: 0;
+            color: #1e3c72;
+        }
+
+        h2 {
+            text-align: center;
         }
 
         p {
@@ -52,13 +57,13 @@
         }
         
         a:hover {
-            color: #764ba2;
+            color: #2a5298;
         }
 
         button {
             border-radius: 20px;
-            border: 1px solid #764ba2;
-            background-color: #764ba2;
+            border: 1px solid #2a5298;
+            background-color: #2a5298;
             color: #FFFFFF;
             font-size: 12px;
             font-weight: bold;
@@ -68,6 +73,7 @@
             transition: transform 80ms ease-in, background-color 0.3s;
             cursor: pointer;
             font-family: 'Tajawal', sans-serif;
+            margin-top: 10px;
         }
 
         button:active {
@@ -96,6 +102,7 @@
             padding: 0 50px;
             height: 100%;
             text-align: center;
+            direction: rtl; /* النصوص عربية داخل الفورم */
         }
 
         input {
@@ -108,14 +115,15 @@
             outline: none;
             transition: 0.3s;
             font-family: 'Tajawal', sans-serif;
+            text-align: right;
         }
         
         input:focus {
             background-color: #e0e0e0;
-            box-shadow: 0 0 0 2px rgba(118, 75, 162, 0.2);
+            box-shadow: 0 0 0 2px rgba(42, 82, 152, 0.2);
         }
 
-        /* الحاوية الرئيسية */
+        /* الحاوية الرئيسية - نجعل اتجاهها LTR لضمان عمل الحركة بشكل صحيح */
         .container {
             background-color: #fff;
             border-radius: 10px;
@@ -123,9 +131,10 @@
                         0 10px 10px rgba(0,0,0,0.22);
             position: relative;
             overflow: hidden;
-            width: 768px;
+            width: 850px;
             max-width: 100%;
-            min-height: 550px; /* Increased height for better mobile view */
+            min-height: 550px;
+            direction: ltr; 
         }
 
         .form-container {
@@ -191,9 +200,9 @@
         }
 
         .overlay {
-            background: #FF416C;
-            background: -webkit-linear-gradient(to right, #667eea, #764ba2);
-            background: linear-gradient(to right, #667eea, #764ba2);
+            background: #2a5298;
+            background: -webkit-linear-gradient(to right, #1e3c72, #2a5298);
+            background: linear-gradient(to right, #1e3c72, #2a5298);
             background-repeat: no-repeat;
             background-size: cover;
             background-position: 0 0;
@@ -223,6 +232,7 @@
             width: 50%;
             transform: translateX(0);
             transition: transform 0.6s ease-in-out;
+            direction: rtl; /* النصوص عربية داخل الطبقة المتحركة */
         }
 
         .overlay-left {
@@ -242,37 +252,24 @@
             transform: translateX(20%);
         }
 
-        /* الشبكات الاجتماعية */
-        .social-container {
-            margin: 20px 0;
-        }
-
-        .social-container a {
-            border: 1px solid #DDDDDD;
+        /* تنسيق اللوجو */
+        .logo-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
             border-radius: 50%;
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0 5px;
-            height: 40px;
-            width: 40px;
-            color: #333;
-            transition: 0.3s;
-        }
-        
-        .social-container a:hover {
-            background-color: #764ba2;
-            color: white;
-            border-color: #764ba2;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         /* توافق مع الجوال (Responsive) */
         @media (max-width: 768px) {
             .container {
                 width: 90%;
-                min-height: 600px;
+                min-height: 650px; /* زيادة الطول قليلاً للموبايل */
                 display: flex;
                 flex-direction: column;
+                direction: rtl; /* في الموبايل لا نحتاج للحركة المعقدة، فنجعلها عربية بالكامل */
             }
             
             .form-container {
@@ -280,22 +277,25 @@
                 position: absolute;
                 height: 100%;
                 top: 0;
-                left: 0;
+                left: 0; /* في الموبايل مع RTL قد نحتاج لضبط هذا */
+                right: 0;
                 transition: all 0.4s ease-in-out;
             }
 
             .sign-in-container {
                 z-index: 2;
                 opacity: 1;
+                width: 100%;
             }
             
             .sign-up-container {
                 opacity: 0;
                 z-index: 1;
-                transform: none; /* تعطيل الحركة الجانبية في الموبايل */
+                width: 100%;
+                transform: none; 
             }
 
-            /* في وضع الموبايل، نخفي اللوحة الجانبية ونستخدم أزرار عادية للتبديل */
+            /* إخفاء اللوحة الجانبية في الموبايل */
             .overlay-container {
                 display: none;
             }
@@ -317,7 +317,7 @@
             .mobile-toggle {
                 display: block;
                 margin-top: 20px;
-                color: #764ba2;
+                color: #2a5298;
                 cursor: pointer;
                 font-weight: bold;
                 text-decoration: underline;
@@ -337,40 +337,40 @@
         <!-- نموذج إنشاء حساب (Sign Up) -->
         <div class="form-container sign-up-container">
             <form action="#">
-                <h1 class="text-2xl mb-2 text-gray-800">إنشاء حساب</h1>
-                <div class="social-container">
-                    <a href="#" class="social"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="social"><i class="fab fa-google-plus-g"></i></a>
-                    <a href="#" class="social"><i class="fab fa-linkedin-in"></i></a>
-                </div>
-                <span class="text-gray-500 mb-4">أو استخدم بريدك الإلكتروني للتسجيل</span>
+                <!-- اللوجو -->
+                <img src="pen.jpeg" alt="Smart Pen Logo" class="logo-img">
+                <h1 class="text-2xl font-bold text-[#1e3c72]">Smart Pen</h1>
+                <h2 class="text-lg mb-2 text-gray-600">بوابة الدفع</h2>
+                <span class="text-gray-500 mb-4 font-bold">إنشاء حساب للمتابعة إلى الدفع</span>
+                
                 <input type="text" placeholder="الاسم الكامل" required />
                 <input type="email" placeholder="البريد الإلكتروني" required />
                 <input type="password" placeholder="كلمة المرور" required />
-                <button type="submit" class="mt-4 shadow-lg hover:shadow-xl">تسجيل جديد</button>
+                
+                <button type="submit" class="mt-4 shadow-lg hover:shadow-xl">تسجيل ومتابعة الدفع</button>
                 
                 <!-- زر تبديل للموبايل فقط -->
-                <p class="mobile-toggle" onclick="toggleMobile()">لديك حساب بالفعل؟ تسجيل الدخول</p>
+                <p class="mobile-toggle" onclick="toggleMobile()">لديك حساب؟ تسجيل الدخول للدفع</p>
             </form>
         </div>
 
         <!-- نموذج تسجيل الدخول (Sign In) -->
         <div class="form-container sign-in-container">
             <form action="#">
-                <h1 class="text-2xl mb-2 text-gray-800">تسجيل الدخول</h1>
-                <div class="social-container">
-                    <a href="#" class="social"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="social"><i class="fab fa-google-plus-g"></i></a>
-                    <a href="#" class="social"><i class="fab fa-linkedin-in"></i></a>
-                </div>
-                <span class="text-gray-500 mb-4">أو استخدم حسابك الحالي</span>
+                <!-- اللوجو -->
+                <img src="pen.jpeg" alt="Smart Pen Logo" class="logo-img">
+                <h1 class="text-2xl font-bold text-[#1e3c72]">Smart Pen</h1>
+                <h2 class="text-lg mb-2 text-gray-600">بوابة الدفع</h2>
+                <span class="text-gray-500 mb-4 font-bold">تسجيل الدخول لإتمام الدفع</span>
+                
                 <input type="email" placeholder="البريد الإلكتروني" required />
                 <input type="password" placeholder="كلمة المرور" required />
+                
                 <a href="#">هل نسيت كلمة المرور؟</a>
-                <button type="submit" class="mt-2 shadow-lg hover:shadow-xl">دخول</button>
+                <button type="submit" class="mt-2 shadow-lg hover:shadow-xl">دخول آمن</button>
                 
                 <!-- زر تبديل للموبايل فقط -->
-                <p class="mobile-toggle" onclick="toggleMobile()">ليس لديك حساب؟ إنشاء حساب</p>
+                <p class="mobile-toggle" onclick="toggleMobile()">جديد هنا؟ إنشاء حساب للدفع</p>
             </form>
         </div>
 
@@ -379,23 +379,23 @@
             <div class="overlay">
                 <!-- الجزء الأيسر: يظهر عندما نكون في صفحة التسجيل للعودة للدخول -->
                 <div class="overlay-panel overlay-left">
-                    <h1 class="text-3xl mb-4 font-bold">مرحباً بعودتك!</h1>
-                    <p>للبقاء على اتصال معنا، يرجى تسجيل الدخول بمعلوماتك الشخصية</p>
+                    <h1 class="text-3xl mb-4 font-bold">مرحباً مجدداً!</h1>
+                    <p>لإتمام عملية الدفع والاشتراك في خدمات Smart Pen، يرجى تسجيل الدخول</p>
                     <button class="ghost" id="signIn">تسجيل الدخول</button>
                 </div>
                 <!-- الجزء الأيمن: يظهر افتراضياً لدعوة المستخدم للتسجيل -->
                 <div class="overlay-panel overlay-right">
-                    <h1 class="text-3xl mb-4 font-bold">أهلاً بك يا صديقي!</h1>
-                    <p>أدخل بياناتك الشخصية وابدأ رحلتك معنا اليوم</p>
-                    <button class="ghost" id="signUp">إنشاء حساب</button>
+                    <h1 class="text-3xl mb-4 font-bold">بوابة الدفع الآمنة</h1>
+                    <p>أدخل بياناتك لإنشاء حساب والبدء في الاستفادة من خدمات الدفع عبر Smart Pen</p>
+                    <button class="ghost" id="signUp">إنشاء حساب للدفع</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- رسالة تنبيه بسيطة (Toast) -->
-    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-50">
-        تم إرسال البيانات بنجاح (محاكاة)
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-50 font-bold" style="direction: rtl;">
+        تم تسجيل الدخول بنجاح - جاري تحويلك للدفع...
     </div>
 
     <script>
