@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تجربة دفع جييديا</title>
     
-    <!-- مكتبة جييديا للسيرفر السعودي -->
-    <script src="https://ksamerchant.geidea.net/payment-intent/online/v1/geidea-checkout.min.js"></script>
+    <!-- 
+      تحديث هام: استخدام الرابط الرسمي العام لمكتبة الدفع
+      هذا الرابط يعمل مع مصر والسعودية (KSA Merchant)
+    -->
+    <script src="https://www.geidea.net/online/checkout/geidea-checkout.min.js"></script>
     
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f4f4f9; }
@@ -32,13 +35,20 @@
             const btn = document.getElementById('payBtn');
             const status = document.getElementById('status');
             
+            // التحقق من أن المكتبة تم تحميلها
+            if (typeof GeideaCheckout === 'undefined') {
+                status.innerText = "خطأ: لم يتم تحميل مكتبة Geidea. تأكد من اتصال الإنترنت أو الرابط.";
+                status.className = "error";
+                return;
+            }
+
             btn.disabled = true;
             btn.innerText = "جاري الاتصال...";
             status.innerHTML = "";
             status.className = "";
 
             try {
-                // 1. طلب إنشاء الجلسة من الباك إند
+                // 1. طلب إنشاء الجلسة
                 console.log("جاري طلب الجلسة...");
                 const response = await fetch('/.netlify/functions/create-session', {
                     method: 'POST',
@@ -50,30 +60,28 @@
                 });
 
                 const data = await response.json();
-                console.log("رد السيرفر الكامل:", data); // هام جداً للتنقيح
+                console.log("رد السيرفر:", data); 
 
                 if (!response.ok) {
                     throw new Error(data.details || data.error || "فشل الاتصال بالسيرفر");
                 }
 
-                // 2. استخراج رقم الجلسة بذكاء (الحل للمشكلة الحالية)
+                // 2. استخراج رقم الجلسة
                 let sessionId = null;
-                
                 if (data.session && data.session.id) {
-                    sessionId = data.session.id; // الهيكل المعتاد للسيرفر السعودي
+                    sessionId = data.session.id;
                 } else if (data.id) {
-                    sessionId = data.id; // هيكل بديل
+                    sessionId = data.id;
                 }
 
                 if (!sessionId) {
-                    console.error("البيانات المستلمة لا تحتوي على رقم جلسة:", data);
-                    throw new Error("لم يتم استلام رقم الجلسة (Session ID) من السيرفر. راجع الكونسول للتفاصيل.");
+                    throw new Error("لم يتم استلام رقم الجلسة (Session ID)");
                 }
 
-                console.log("تم استلام رقم الجلسة بنجاح:", sessionId);
-                status.innerText = "تم استلام الجلسة، جاري فتح نافذة الدفع...";
+                console.log("Session ID:", sessionId);
+                status.innerText = "جاري فتح نافذة الدفع...";
 
-                // 3. فتح نافذة الدفع الخاصة بـ Geidea
+                // 3. فتح نافذة الدفع
                 const payment = new GeideaCheckout(onPaymentSuccess, onPaymentError, onPaymentCancel);
                 
                 payment.startPayment(sessionId);
@@ -90,21 +98,20 @@
             }
         }
 
-        // دوال الاستجابة (Callbacks)
         function onPaymentSuccess(data) {
-            console.log("نجاح الدفع:", data);
+            console.log("Success:", data);
             document.getElementById('status').innerText = "تمت عملية الدفع بنجاح! ✅";
             document.getElementById('status').style.color = "green";
         }
 
         function onPaymentError(error) {
-            console.log("فشل الدفع:", error);
+            console.log("Error:", error);
             document.getElementById('status').innerText = "فشلت عملية الدفع ❌";
             document.getElementById('status').className = "error";
         }
 
         function onPaymentCancel() {
-            console.log("إلغاء الدفع");
+            console.log("Cancel");
             document.getElementById('status').innerText = "تم إلغاء العملية";
         }
     </script>
