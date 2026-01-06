@@ -1,316 +1,257 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geidea System Diagnostics (KSA Edition)</title>
+    <title>شحن المحفظة - Geidea & Firebase</title>
     
-    <!-- 
-       FIX: تم التحديث لاستخدام الملف الذي وجدته
-       1. نحاول تحميل الملف المحلي (geideaCheckout.min.js)
-       2. إذا لم يوجد، نستخدم الرابط الذي وجدته أنت كبديل
-    -->
+    <!-- Geidea Script -->
     <script src="geideaCheckout.min.js" onerror="loadExternalScript()"></script>
-    
     <script>
         function loadExternalScript() {
             console.warn("Local script not found, trying CDN...");
             var script = document.createElement('script');
-            // تم تحديث الرابط للرابط الذي يعمل معك
             script.src = "https://www.ksamerchant.geidea.net/hpp/geideaCheckout.min.js";
-            script.onload = function() { window.geideaScriptLoaded = true; };
-            script.onerror = function() { window.geideaScriptFailed = true; };
             document.head.appendChild(script);
-        }
-        // حالة النجاح للملف المحلي
-        window.onload = function() {
-            if (typeof GeideaCheckout !== 'undefined') window.geideaScriptLoaded = true;
         }
     </script>
     
     <style>
-        :root { --bg: #1e1e1e; --term-bg: #000; --text: #e0e0e0; --green: #00ff00; --red: #ff4444; --yellow: #ffff00; --blue: #4488ff; }
-        body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'Monaco', monospace; margin: 0; padding: 20px; font-size: 14px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        h1 { color: var(--green); text-align: center; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        button { background: var(--green); color: black; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; border-radius: 5px; text-transform: uppercase; transition: 0.2s; margin-bottom: 20px; }
-        button:hover { background: #00cc00; }
-        button:disabled { background: #555; cursor: wait; }
-        .terminal-window { background: var(--term-bg); border: 2px solid #333; border-radius: 6px; padding: 15px; height: 600px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
-        .log-entry { margin-bottom: 8px; border-bottom: 1px dashed #333; padding-bottom: 5px; }
-        .log-time { color: #666; margin-right: 10px; }
-        .status-ok { color: var(--green); font-weight: bold; }
-        .status-fail { color: var(--red); font-weight: bold; }
-        .status-warn { color: var(--yellow); }
-        .details { margin-left: 70px; color: #888; font-size: 12px; white-space: pre-wrap; display: block; margin-top: 2px; }
-        #copyBtn { position: absolute; top: 10px; right: 10px; background: #333; color: white; padding: 5px 10px; font-size: 12px; width: auto; border: 1px solid #555; cursor: pointer; }
-        
-        /* تنبيه للخطأ */
-        .alert-box { background: #ff444433; border: 1px solid #ff4444; color: #ffaaaa; padding: 10px; margin-bottom: 15px; display: none; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        h2 { color: #333; margin-bottom: 0.5rem; }
+        .price-tag { background: #e8f5e9; color: #2e7d32; padding: 5px 15px; border-radius: 20px; font-weight: bold; display: inline-block; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 12px; background: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; margin-top: 15px; }
+        button:hover { background: #45a049; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .status { margin-top: 15px; font-size: 14px; color: #666; min-height: 20px; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: none; vertical-align: middle; margin-right: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Geidea Diagnostics (KSA 🇸🇦 Final)</h1>
+        <h2>شحن الرصيد</h2>
+        <div class="price-tag">باقة 100 ر.س</div>
         
-        <div id="libAlert" class="alert-box">
-            ⚠️ <b>Warning:</b> Geidea Library failed to load! <br>
-            1. Ensure <code>geideaCheckout.min.js</code> is in the same folder.<br>
-            2. Disable AdBlock or check internet connection.
+        <div id="authForm">
+            <input type="text" id="name" placeholder="الاسم الكامل" required>
+            <input type="email" id="email" placeholder="البريد الإلكتروني" required>
+            <input type="password" id="password" placeholder="كلمة المرور" required>
+            <button id="payBtn" onclick="handleRegisterAndPay()">
+                <span class="loader" id="loader"></span>
+                دفع وشحن المحفظة
+            </button>
         </div>
 
-        <button id="startBtn" onclick="runFullDiagnostics()">⚡ START SAUDI TESTS</button>
-        
-        <div class="terminal-window">
-            <button id="copyBtn" onclick="copyLogs()">Copy Logs</button>
-            <div id="terminalOutput">
-                <div class="log-entry">> Ready. Click Start...</div>
-            </div>
-        </div>
+        <div id="statusMessage" class="status"></div>
     </div>
 
-    <script>
-        const SAUDI_COUNTRY_CODE = "+966";
-        const SAUDI_PHONE_NUMBER = "550063691"; 
+    <!-- Firebase Configuration & Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const OPERATIONS = [
-            { 
-                id: 'createSession', 
-                name: 'Checkout V2 Session', 
-                payload: { 
-                    amount: 100, 
-                    currency: "SAR", 
-                    paymentOperation: "Pay", 
-                    appearance: { uiMode: "modal" }, 
-                    customer: { 
-                        email: "test@geidea-ksa.com",
-                        phoneNumber: SAUDI_PHONE_NUMBER,
-                        phoneCountryCode: SAUDI_COUNTRY_CODE
-                    } 
-                },
-                checkWindow: true 
-            },
-            { 
-                id: 'createQuickLink', 
-                name: 'Quick Payment Link (SMS)', 
-                payload: { 
-                    amount: 150, 
-                    currency: "SAR", 
-                    customer: { 
-                        name: "KSA Customer", 
-                        phoneNumber: SAUDI_PHONE_NUMBER,
-                        phoneCountryCode: SAUDI_COUNTRY_CODE
-                    } 
-                } 
-            },
-            { 
-                id: 'saveCard', 
-                name: 'Save Card (Tokenization)', 
-                payload: { currency: "SAR" }
-            },
-            { 
-                id: 'createSubscription', 
-                name: 'Create Subscription', 
-                payload: { 
-                    recurringPaymentAmount: 50, 
-                    currency: "SAR", 
-                    cycleInterval: "month", 
-                    cycleFrequency: 12, 
-                    typeOfPayment: "RecurringPayment", 
-                    isFirstPmtPBL: false, 
-                    customerRequest: { 
-                        email: "sub@geidea-ksa.com",
-                        phoneNumber: SAUDI_PHONE_NUMBER,
-                        phoneCountryCode: SAUDI_COUNTRY_CODE
-                    } 
-                } 
-            }
-        ];
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6WQKgXjdqe3ghQEQ5EXAMZM7ffiWlabk",
+            authDomain: "ai-roadmap-jnadeem.firebaseapp.com",
+            projectId: "ai-roadmap-jnadeem",
+            storageBucket: "ai-roadmap-jnadeem.firebasestorage.app",
+            messagingSenderId: "332299268804",
+            appId: "1:332299268804:web:225b27d243845688194f91",
+            measurementId: "G-P8E119RZDX"
+        };
 
-        let logsText = "";
-        let lastSessionId = null;
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // التحقق الفوري عند تحميل الصفحة
-        window.addEventListener('load', () => {
-            // --- جديد: التحقق مما إذا كنا عائدين من صفحة البنك ---
-            const urlParams = new URLSearchParams(window.location.search);
-            // Geidea عادة ترسل responseCode في الرابط عند العودة
-            if (urlParams.has('responseCode')) {
-                const code = urlParams.get('responseCode');
-                const msg = urlParams.get('responseMessage') || "Process Completed";
-                
-                // تنظيف الرابط (اختياري)
-                window.history.replaceState({}, document.title, window.location.pathname);
+        // UI Elements
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const passInput = document.getElementById('password');
+        const payBtn = document.getElementById('payBtn');
+        const statusDiv = document.getElementById('statusMessage');
+        const loader = document.getElementById('loader');
 
-                // الكود 000 يعني نجاح
-                if (code === '000' || code === '0') {
-                    setTimeout(() => {
-                        log("✅ 💰 PAYMENT SUCCESSFUL (Returned from Bank)", "success", `Code: ${code}\nMsg: ${msg}`);
-                        alert("✅ تم الدفع بنجاح!\n(Payment Approved)");
-                    }, 500);
-                } else {
-                    setTimeout(() => {
-                        log("❌ Payment Failed (Returned from Bank)", "error", `Code: ${code}\nMsg: ${msg}`);
-                        alert("❌ لم تكتمل العملية.\n" + msg);
-                    }, 500);
-                }
-            }
-            // -----------------------------------------------------
+        // المبلغ المراد شحنه
+        const PAYMENT_AMOUNT = 100.00;
 
-            // ننتظر قليلاً للتأكد من المحاولة الثانية للتحميل
-            setTimeout(() => {
-                if (window.geideaScriptFailed && typeof GeideaCheckout === 'undefined') {
-                    document.getElementById('libAlert').style.display = 'block';
-                }
-            }, 1000);
-        });
+        window.handleRegisterAndPay = async () => {
+            const name = nameInput.value;
+            const email = emailInput.value;
+            const password = passInput.value;
 
-        function log(message, type = 'info', details = null) {
-            const term = document.getElementById('terminalOutput');
-            const time = new Date().toLocaleTimeString();
-            let colorClass = '';
-            
-            if (type === 'success') colorClass = 'status-ok';
-            else if (type === 'error') colorClass = 'status-fail';
-            else if (type === 'warn') colorClass = 'status-warn';
-
-            let html = `<div class="log-entry">
-                <span class="log-time">[${time}]</span>
-                <span class="${colorClass}">${message}</span>`;
-            
-            if (details) {
-                html += `<span class="details">${details}</span>`;
-            }
-            html += `</div>`;
-
-            term.innerHTML += html;
-            term.scrollTop = term.scrollHeight;
-            logsText += `[${time}] ${message}\n${details ? details + '\n' : ''}`;
-        }
-
-        async function runFullDiagnostics() {
-            const btn = document.getElementById('startBtn');
-            const term = document.getElementById('terminalOutput');
-            
-            btn.disabled = true;
-            term.innerHTML = "";
-            logsText = "";
-            
-            log("🚀 Starting KSA Diagnostic Sequence (Updated)...", "warn");
-            log(`ℹ️ Phone: ${SAUDI_COUNTRY_CODE}-${SAUDI_PHONE_NUMBER}`, "info");
-            log("---------------------------------------------------");
-
-            // فحص المكتبة بشكل أكثر دقة
-            if (typeof GeideaCheckout === 'undefined') {
-                log("❌ CRITICAL: Geidea JS Library NOT loaded.", "error");
-                log("   -> Trying to load from local file or CDN failed.", "warn");
-            } else {
-                log("✅ Geidea JS Library Loaded successfully.", "success");
+            if(!email || !password || !name) {
+                showStatus("الرجاء ملء جميع الحقول", "red");
+                return;
             }
 
-            for (let op of OPERATIONS) {
-                await runSingleTest(op);
-                await new Promise(r => setTimeout(r, 1000));
-            }
-
-            log("---------------------------------------------------");
-            log("🏁 Diagnostic Complete.", "warn");
-            btn.disabled = false;
-        }
-
-        async function runSingleTest(op) {
-            log(`🔄 Testing: ${op.name} [${op.id}]...`, "info");
-
-            let currentPayload = { ...op.payload };
+            setLoading(true);
 
             try {
-                const res = await fetch('/.netlify/functions/create-session', {
+                let user;
+                let isNewUser = false;
+
+                // 1. المصادقة (تسجيل جديد أو دخول)
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    user = userCredential.user;
+                    isNewUser = true;
+                    showStatus("تم إنشاء الحساب، جاري الحفظ...", "green");
+                } catch (authError) {
+                    if (authError.code === 'auth/email-already-in-use') {
+                        showStatus("جاري تسجيل الدخول...", "blue");
+                        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                        user = userCredential.user;
+                    } else {
+                        throw authError;
+                    }
+                }
+
+                // 2. إنشاء مستند المستخدم في Firestore إذا كان جديداً
+                if (isNewUser) {
+                    await createUserDocument(user, name);
+                }
+
+                // 3. بدء عملية الدفع
+                await initiatePayment(user.uid);
+
+            } catch (error) {
+                console.error(error);
+                showStatus("خطأ: " + error.message, "red");
+                setLoading(false);
+            }
+        };
+
+        // دالة إنشاء ملف المستخدم في Firestore
+        async function createUserDocument(user, displayName) {
+            try {
+                const userRef = doc(db, "users", user.uid);
+                await setDoc(userRef, {
+                    uid: user.uid,
+                    displayName: displayName,
+                    email: user.email,
+                    walletBalance: 0, // الرصيد الابتدائي
+                    isPremium: false,
+                    photoURL: user.photoURL || "",
+                    subscriptionPlan: "free",
+                    createdAt: serverTimestamp(),
+                    referredBy: "" // يمكن إضافته لاحقاً من الـ URL parameters
+                });
+                
+                // تحديث اسم المستخدم في Firebase Auth أيضاً
+                await updateProfile(user, { displayName: displayName });
+                
+            } catch (e) {
+                console.error("Error creating user doc:", e);
+                // لن نوقف العملية هنا، سنسمح بالدفع
+            }
+        }
+
+        // دالة تحديث الرصيد بعد الدفع الناجح
+        async function updateUserBalance(userId) {
+            try {
+                const userRef = doc(db, "users", userId);
+                
+                // استخدام increment لضمان دقة العمليات الحسابية المتزامنة
+                await updateDoc(userRef, {
+                    walletBalance: increment(PAYMENT_AMOUNT),
+                    isPremium: true, // مثال: ترقية الحساب عند الشحن
+                    lastPaymentDate: serverTimestamp()
+                });
+                
+                console.log("Wallet Updated Successfully");
+            } catch (e) {
+                console.error("Error updating wallet:", e);
+                showStatus("تم الدفع ولكن فشل تحديث الرصيد. تواصل معنا.", "orange");
+                throw e;
+            }
+        }
+
+        async function initiatePayment(userId) {
+            showStatus("جاري الاتصال ببوابة الدفع...", "blue");
+
+            try {
+                // استدعاء دالة Netlify للحصول على Session ID
+                const response = await fetch('/.netlify/functions/create-payment-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ operation: op.id, payload: currentPayload })
+                    body: JSON.stringify({ 
+                        amount: PAYMENT_AMOUNT, 
+                        customerEmail: emailInput.value,
+                        userId: userId 
+                    })
                 });
 
-                const data = await res.json();
-                const status = data._statusCode || res.status;
+                const data = await response.json();
 
-                if (status >= 200 && status < 300) {
-                    let detailMsg = `Status: ${status} OK`;
-                    const sessId = data.session?.id || data.id;
-                    
-                    if (sessId && op.id === 'createSession') {
-                        lastSessionId = sessId;
-                        detailMsg += `\n🆔 Session ID: ${sessId}`;
-                        
-                        if (op.checkWindow) {
-                            // التحقق قبل إظهار الزر
-                            if (typeof GeideaCheckout !== 'undefined') {
-                                detailMsg += `\n✅ Window Ready`;
-                                setTimeout(() => {
-                                    const btnId = `btn-${sessId.substring(0,8)}`;
-                                    const term = document.getElementById('terminalOutput');
-                                    term.lastElementChild.innerHTML += ` <button id="${btnId}" style="width:auto; padding:2px 10px; font-size:10px; margin:0; display:inline;" onclick="openTestWindow('${sessId}')">Test Window</button>`;
-                                }, 100);
-                            } else {
-                                detailMsg += `\n⚠️ Session Created, but JS Lib missing (Cannot open window)`;
-                            }
-                        }
-                    }
-                    
-                    if (data.paymentUrl) {
-                        detailMsg += `\n🔗 URL: ${data.paymentUrl}`;
-                    }
-
-                    log(`✅ ${op.name}: SUCCESS`, "success", detailMsg);
-
+                if (data.success && data.sessionId) {
+                    showStatus("نافذة الدفع جاهزة...", "green");
+                    startGeideaPayment(data.sessionId, userId);
                 } else {
-                    let errorMsg = JSON.stringify(data);
-                    if (data.detailedResponseMessage) errorMsg = data.detailedResponseMessage;
-                    else if (data.responseMessage) errorMsg = data.responseMessage;
-                    else if (data.errors) errorMsg = JSON.stringify(data.errors);
-                    
-                    log(`❌ ${op.name}: FAILED (${status})`, "error", `Server Msg: ${errorMsg}\nPayload: ${JSON.stringify(currentPayload)}`);
+                    throw new Error(data.error || "فشل في استلام رقم الجلسة");
                 }
 
             } catch (err) {
-                log(`❌ ${op.name}: NETWORK ERROR`, "error", err.message);
+                console.error(err);
+                showStatus("فشل الاتصال: " + err.message, "red");
+                setLoading(false);
             }
         }
 
-        function openTestWindow(sessionId) {
+        function startGeideaPayment(sessionId, userId) {
             if (typeof GeideaCheckout === 'undefined') {
-                alert("Cannot open payment window: Library not loaded (Check AdBlock)");
+                showStatus("مكتبة الدفع غير محملة. تحقق من الانترنت.", "red");
+                setLoading(false);
                 return;
             }
-            
-            // قمت فقط بإضافة رسالة التنبيه (Alert) هنا في حال لم يحدث إعادة تحميل للصفحة
+
             const payment = new GeideaCheckout(
-                function(successData) {
-                    console.log("Success:", successData);
-                    log("✅ 💰 PAYMENT SUCCESSFUL!", "success", JSON.stringify(successData));
-                    // هذه الرسالة تظهر إذا أغلقت النافذة المنبثقة بنجاح دون إعادة تحميل الصفحة
-                    alert("✅ تم الدفع بنجاح!\nPayment Successful!");
-                }, 
-                function(errorData) {
-                    console.error("Error:", errorData);
-                    log("❌ Payment Failed", "error", JSON.stringify(errorData));
-                    alert("❌ فشل الدفع.");
-                }, 
+                async function(success) {
+                    console.log("Payment Success:", success);
+                    showStatus("✅ تم الدفع! جاري تحديث المحفظة...", "blue");
+                    
+                    try {
+                        // تحديث رصيد المحفظة في Firestore
+                        await updateUserBalance(userId);
+                        showStatus("🎉 تمت العملية بنجاح! رصيدك الحالي زاد بمقدار " + PAYMENT_AMOUNT, "green");
+                        
+                        // تنظيف النموذج بعد ثواني
+                        setTimeout(() => {
+                            setLoading(false);
+                            alert("تم شحن محفظتك بنجاح!");
+                        }, 1000);
+                        
+                    } catch (err) {
+                        setLoading(false);
+                    }
+                },
+                function(error) {
+                    console.error("Payment Error:", error);
+                    showStatus("❌ فشل الدفع حاول مرة أخرى.", "red");
+                    setLoading(false);
+                },
                 function() {
-                    console.log("Cancel");
-                    log("⚠️ Payment Cancelled", "warn");
+                    showStatus("⚠️ تم إلغاء العملية", "orange");
+                    setLoading(false);
                 }
             );
-            
+
             payment.startPayment(sessionId);
         }
 
-        function copyLogs() {
-            navigator.clipboard.writeText(logsText).then(() => {
-                const btn = document.getElementById('copyBtn');
-                btn.innerText = "Copied!";
-                setTimeout(() => btn.innerText = "Copy Logs", 2000);
-            });
+        function showStatus(msg, color) {
+            statusDiv.innerText = msg;
+            statusDiv.style.color = color || "black";
+        }
+
+        function setLoading(isLoading) {
+            payBtn.disabled = isLoading;
+            loader.style.display = isLoading ? "inline-block" : "none";
         }
     </script>
 </body>

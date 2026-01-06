@@ -1,12 +1,12 @@
 {
   "name": "geidea-payment-integration",
   "version": "1.0.0",
-  "description": "Simple Geidea Payment Integration",
+  "description": "Geidea Payment with Firebase Auth",
   "private": true,
   "dependencies": {
-    "firebase": "^12.7.0"
+    "firebase": "^10.7.1"
   },
   "scripts": {
-    "build": "echo 'No build step required for static site'"
+    "start": "netlify dev"
   }
 }
