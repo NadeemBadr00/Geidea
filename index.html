@@ -133,6 +133,31 @@
 
         // التحقق الفوري عند تحميل الصفحة
         window.addEventListener('load', () => {
+            // --- جديد: التحقق مما إذا كنا عائدين من صفحة البنك ---
+            const urlParams = new URLSearchParams(window.location.search);
+            // Geidea عادة ترسل responseCode في الرابط عند العودة
+            if (urlParams.has('responseCode')) {
+                const code = urlParams.get('responseCode');
+                const msg = urlParams.get('responseMessage') || "Process Completed";
+                
+                // تنظيف الرابط (اختياري)
+                window.history.replaceState({}, document.title, window.location.pathname);
+
+                // الكود 000 يعني نجاح
+                if (code === '000' || code === '0') {
+                    setTimeout(() => {
+                        log("✅ 💰 PAYMENT SUCCESSFUL (Returned from Bank)", "success", `Code: ${code}\nMsg: ${msg}`);
+                        alert("✅ تم الدفع بنجاح!\n(Payment Approved)");
+                    }, 500);
+                } else {
+                    setTimeout(() => {
+                        log("❌ Payment Failed (Returned from Bank)", "error", `Code: ${code}\nMsg: ${msg}`);
+                        alert("❌ لم تكتمل العملية.\n" + msg);
+                    }, 500);
+                }
+            }
+            // -----------------------------------------------------
+
             // ننتظر قليلاً للتأكد من المحاولة الثانية للتحميل
             setTimeout(() => {
                 if (window.geideaScriptFailed && typeof GeideaCheckout === 'undefined') {
@@ -258,28 +283,22 @@
                 return;
             }
             
-            // --- تم التعديل هنا لإظهار رسائل النجاح ---
+            // قمت فقط بإضافة رسالة التنبيه (Alert) هنا في حال لم يحدث إعادة تحميل للصفحة
             const payment = new GeideaCheckout(
-                // 1. Success Callback (دالة النجاح)
                 function(successData) {
                     console.log("Success:", successData);
-                    // تسجيل في شاشة الترمينال
-                    log("✅ 💰 PAYMENT SUCCESSFUL! (تم الدفع بنجاح)", "success", JSON.stringify(successData, null, 2));
-                    // إظهار رسالة منبثقة للمستخدم
+                    log("✅ 💰 PAYMENT SUCCESSFUL!", "success", JSON.stringify(successData));
+                    // هذه الرسالة تظهر إذا أغلقت النافذة المنبثقة بنجاح دون إعادة تحميل الصفحة
                     alert("✅ تم الدفع بنجاح!\nPayment Successful!");
                 }, 
-                
-                // 2. Error Callback (دالة الخطأ)
                 function(errorData) {
                     console.error("Error:", errorData);
                     log("❌ Payment Failed", "error", JSON.stringify(errorData));
                     alert("❌ فشل الدفع.");
                 }, 
-                
-                // 3. Cancel Callback (دالة الإلغاء)
                 function() {
                     console.log("Cancel");
-                    log("⚠️ Payment Cancelled by user", "warn");
+                    log("⚠️ Payment Cancelled", "warn");
                 }
             );
             
