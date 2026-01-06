@@ -4,7 +4,7 @@ const axios = require('axios');
 const GEIDEA_CONFIG = {
     publicKey: '88963e28-ee73-4eb7-b0b6-6f1bf6938418',
     apiPassword: 'd3e031a3-e6fa-4296-9363-c5debf587f65',
-    apiUrl: 'https://api.geidea.net/payment-intent/api/v1/direct/session',
+    apiUrl: '[https://api.geidea.net/payment-intent/api/v1/direct/session](https://api.geidea.net/payment-intent/api/v1/direct/session)',
     currency: 'EGP'
 };
 
@@ -23,7 +23,10 @@ exports.handler = async function(event, context) {
         const payload = {
             amount: parseFloat(amount),
             currency: GEIDEA_CONFIG.currency,
-            callbackUrl: "https://geidea-test.netlify.app/success", // رابط افتراضي، سيتم تحديثه لاحقاً
+            // ---------------------------------------------------------
+            // تم تحديث الرابط هنا ليتناسب مع موقعك على Netlify
+            // ---------------------------------------------------------
+            callbackUrl: "[https://geideaa.netlify.app/success](https://geideaa.netlify.app/success)", 
             timestamp: new Date().toISOString()
         };
 
