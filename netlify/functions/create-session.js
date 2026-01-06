@@ -1,127 +1,185 @@
 const https = require('https');
 const crypto = require('crypto');
 
-// --- إعداد السيرفر الرئيسي ---
-// هام: نستخدم نفس السيرفر لجميع الطلبات لضمان توافق الجلسات
-const MAIN_HOST = 'api.ksamerchant.geidea.net';
-
+// --- قاعدة بيانات الروابط (Endpionts Map) ---
+// تم تجميعها من الوثائق التي أرسلتها حرفياً
 const ENDPOINTS = {
   // === Checkout V2 ===
   'createSession': { 
     path: '/payment-intent/api/v2/direct/session', 
     method: 'POST', 
-    version: 'v2', 
+    host: 'api.ksamerchant.geidea.net', 
     sign: true 
   },
   'createSessionSubscription': { 
     path: '/payment-intent/api/v2/direct/session-subscription', 
     method: 'POST', 
-    version: 'v2', 
+    host: 'api.ksamerchant.geidea.net', 
     sign: true 
   },
   'saveCard': { 
     path: '/payment-intent/api/v2/direct/session/saveCard', 
     method: 'POST', 
-    version: 'v2', 
+    host: 'api.ksamerchant.geidea.net', 
     sign: true 
   },
 
-  // === Pay By Link (تم الإصلاح: يتطلب توقيع أحياناً) ===
+  // === Pay By Link ===
   'createQuickLink': { 
     path: '/payment-intent/api/v1/direct/eInvoice/quick', 
     method: 'POST', 
-    version: 'v2', 
+    host: 'api.ksamerchant.geidea.net', 
     sign: true 
   },
   'createPaymentLink': { 
     path: '/payment-intent/api/v1/direct/eInvoice', 
     method: 'POST', 
-    version: 'v1' 
+    host: 'api.ksamerchant.geidea.net' 
   },
   'getAllPaymentLinks': { 
     path: '/payment-intent/api/v1/direct/eInvoice', 
     method: 'GET', 
-    version: 'v1' 
+    host: 'api.ksamerchant.geidea.net' 
   },
   'updatePaymentLink': { 
     path: '/payment-intent/api/v1/direct/eInvoice', 
     method: 'PUT', 
-    version: 'v1' 
+    host: 'api.ksamerchant.geidea.net' 
   },
-  'deletePaymentLink': { 
-    path: '/payment-intent/api/v1/direct/eInvoice/{paymentIntentId}', 
-    method: 'DELETE', 
-    version: 'v1' 
+  'fetchPaymentLink': {
+    path: '/payment-intent/api/v1/direct/eInvoice/{paymentIntentId}',
+    method: 'GET',
+    host: 'api.ksamerchant.geidea.net'
   },
-  'sendLinkEmail': { 
-    path: '/payment-intent/api/v1/direct/eInvoice/{paymentIntentId}/SendByEmail', 
-    method: 'POST', 
-    version: 'v1' 
+  'deletePaymentLink': {
+    path: '/payment-intent/api/v1/direct/eInvoice/{paymentIntentId}',
+    method: 'DELETE',
+    host: 'api.ksamerchant.geidea.net'
   },
-  'sendLinkSms': { 
-    path: '/payment-intent/api/v1/direct/eInvoice/{paymentIntentId}/sendBySms', 
-    method: 'POST', 
-    version: 'v1' 
+  'sendLinkEmail': {
+    path: '/payment-intent/api/v1/direct/eInvoice/{paymentIntentId}/SendByEmail',
+    method: 'POST',
+    host: 'api.ksamerchant.geidea.net'
+  },
+  'sendLinkSms': {
+    path: '/payment-intent/api/v1/direct/eInvoice/{paymentIntentId}/sendBySms',
+    method: 'POST',
+    host: 'api.ksamerchant.geidea.net'
   },
 
-  // === Direct API ===
-  'capture': { 
-    path: '/pgw/api/v1/direct/capture', 
+  // === Direct API (PGW) ===
+  'applePay': { 
+    path: '/pgw/api/v2/direct/apple/pay', 
     method: 'POST', 
-    version: 'v1' 
+    host: 'api.geidea.ae' // لاحظ اختلاف السيرفر حسب التوثيق
   },
-  'void': { 
-    path: '/pgw/api/v3/direct/void', 
+  'initiateAuth': { 
+    path: '/pgw/api/v6/direct/authenticate/initiate', 
     method: 'POST', 
-    version: 'v1' 
+    host: 'api.geidea.ae' 
   },
-  'refund': { 
-    path: '/pgw/api/v2/direct/refund', 
+  'authenticatePayer': { 
+    path: '/pgw/api/v6/direct/authenticate/payer', 
     method: 'POST', 
-    version: 'v2', 
-    sign: true 
-  },
-  'fetchOrderById': { 
-    path: '/pgw/api/v1/direct/order/{orderId}', 
-    method: 'GET', 
-    version: 'v1' 
+    host: 'api.geidea.ae' 
   },
   'pay': { 
     path: '/pgw/api/v2/direct/pay', 
     method: 'POST', 
-    version: 'v1' 
+    host: 'api.geidea.ae' 
+  },
+  'payToken': { // MIT
+    path: '/pgw/api/v2/direct/pay/token', 
+    method: 'POST', 
+    host: 'api.ksamerchant.geidea.net', 
+    sign: true 
+  },
+  'capture': { 
+    path: '/pgw/api/v1/direct/capture', 
+    method: 'POST', 
+    host: 'api.ksamerchant.geidea.net' 
+  },
+  'void': { 
+    path: '/pgw/api/v3/direct/void', 
+    method: 'POST', 
+    host: 'api.ksamerchant.geidea.net' 
+  },
+  'refund': { 
+    path: '/pgw/api/v2/direct/refund', 
+    method: 'POST', 
+    host: 'api.ksamerchant.geidea.net', 
+    sign: true 
+  },
+  'cancelOrder': { 
+    path: '/pgw/api/v1/direct/cancel', 
+    method: 'POST', 
+    host: 'api.ksamerchant.geidea.net' 
+  },
+  'fetchOrders': { 
+    path: '/pgw/api/v1/direct/order', 
+    method: 'GET', 
+    host: 'api.ksamerchant.geidea.net' 
+  },
+  'fetchOrderById': { 
+    path: '/pgw/api/v1/direct/order/{orderId}', 
+    method: 'GET', 
+    host: 'api.ksamerchant.geidea.net' 
+  },
+  'retrieveToken': { 
+    path: '/pgw/api/v1/direct/token/{tokenId}', 
+    method: 'GET', 
+    host: 'api.ksamerchant.geidea.net' 
+  },
+  'fetchOrderByRef': { 
+    path: '/pgw/api/v1/direct/order', // Uses query param
+    method: 'GET', 
+    host: 'api.ksamerchant.geidea.net' 
   },
 
   // === Meeza & QR ===
-  // تم تحويلها لاستخدام MAIN_HOST لمحاولة حل مشكلة 404
   'createMeezaQR': { 
     path: '/payment-intent/api/v2/meezaPayment/image/base64', 
     method: 'POST', 
-    version: 'v1' 
+    host: 'api.merchant.geidea.net' // سيرفر خاص بـ Meeza
   },
   'meezaRequestToPay': { 
     path: '/meeza/api/v2/direct/transaction/requestToPay', 
     method: 'POST', 
-    version: 'v1' 
+    host: 'api.merchant.geidea.net' 
+  },
+  'getMeezaOrderId': { 
+    path: '/payment-intent/api/v1/paymentIntent/{paymentIntentID}', 
+    method: 'GET', 
+    host: 'api.merchant.geidea.net' 
+  },
+  'getMeezaOrderDetails': { 
+    path: '/pgw/api/v1/order/{paymentIntentId}/{orderId}', 
+    method: 'GET', 
+    host: 'api.merchant.geidea.net' 
+  },
+  'meezaNotification': { 
+    path: '/pgw/api/v1/MeezaPaymentNotification', 
+    method: 'POST', 
+    host: 'api.merchant.geidea.net' 
   },
 
   // === Subscriptions ===
   'createSubscription': { 
     path: '/subscriptions/api/v1/direct/subscription', 
     method: 'POST', 
-    version: 'v2', 
+    host: 'api.ksamerchant.geidea.net', 
     sign: true 
   },
   'getSubscription': { 
     path: '/subscriptions/api/v1/direct/subscription/{subscriptionid}', 
     method: 'GET', 
-    version: 'v2', 
+    host: 'api.ksamerchant.geidea.net',
     sign: true 
   },
   'cancelSubscription': { 
     path: '/subscriptions/api/v1/direct/subscription/{subscriptionid}/cancel', 
     method: 'POST', 
-    version: 'v2', 
+    host: 'api.ksamerchant.geidea.net',
     sign: true 
   }
 };
@@ -140,7 +198,7 @@ exports.handler = async (event, context) => {
     const publicKey = process.env.GEIDEA_PUBLIC_KEY;
     const apiPassword = process.env.GEIDEA_API_PASSWORD;
 
-    if (!publicKey || !apiPassword) throw new Error('Missing Keys in Netlify Environment Variables');
+    if (!publicKey || !apiPassword) throw new Error('Missing Keys in Netlify');
 
     const incomingData = JSON.parse(event.body);
     const operation = incomingData.operation || 'createSession';
@@ -149,77 +207,69 @@ exports.handler = async (event, context) => {
     const config = ENDPOINTS[operation];
     if (!config) throw new Error(`Unknown operation: ${operation}`);
 
-    // 1. معالجة Path Params (مثل {orderId})
+    // 1. تجهيز الروابط والمتغيرات (Path Params)
     let finalPath = config.path;
     if (payload.pathParams) {
         Object.keys(payload.pathParams).forEach(key => {
             finalPath = finalPath.replace(`{${key}}`, payload.pathParams[key]);
         });
     }
-    // فصل بيانات الجسم عن بيانات الرابط
+    // تنظيف payload من pathParams لكي لا يرسل في الـ Body
     const { pathParams, queryParams, ...bodyData } = payload;
 
-    // 2. معالجة Query Params
+    // 2. تجهيز Query Params لطلبات GET
     if (queryParams) {
         const query = new URLSearchParams(queryParams).toString();
         finalPath += `?${query}`;
     }
 
-    // 3. تجهيز جسم الطلب (Request Body)
+    // 3. تجهيز الـ Body وإضافة البيانات التلقائية
     const timestamp = new Date().toISOString();
+    
+    // نسخ البيانات الموجودة
     let finalBody = { ...bodyData };
 
-    // -- معالجة خاصة: إضافة Public Key لطلبات QR --
+    // حقن Public Key تلقائياً إذا كان مطلوباً في الـ Body (مثل Meeza)
     if (operation === 'createMeezaQR' || operation === 'meezaRequestToPay') {
         if (!finalBody.merchantPublicKey) finalBody.merchantPublicKey = publicKey;
     }
 
-    // -- معالجة التوقيع الإلكتروني (Signature) --
+    // حقن التوقيع (Signature) للعمليات التي تتطلبه
     if (config.sign) {
         finalBody.timestamp = timestamp;
         
         const currency = finalBody.currency || 'SAR';
         const amount = finalBody.amount ? parseFloat(finalBody.amount) : 0;
         
-        // توليد Merchant Ref ID إذا لم يكن موجوداً
+        // توليد MerchantRefId إذا لم يوجد للعمليات الجديدة
         if (!finalBody.merchantReferenceId && operation.includes('create')) {
             finalBody.merchantReferenceId = `REF-${crypto.randomUUID().substring(0, 12)}`;
         }
         const refId = finalBody.merchantReferenceId || '';
 
-        // معادلة التوقيع القياسية (V2 Standard)
+        // معادلة التوقيع (Standard V2 Pattern)
         // PublicKey + Amount(0.00) + Currency + RefId + Timestamp
         let dataToSign = `${publicKey}${amount.toFixed(2)}${currency}${refId}${timestamp}`;
 
-        // استثناءات للمعادلة حسب نوع العملية
+        // استثناءات المعادلات
         if (operation === 'saveCard') {
             dataToSign = `${publicKey}${currency}${timestamp}`;
-        } else if (operation === 'refund') {
-            dataToSign = `${publicKey}${amount.toFixed(2)}${currency}${finalBody.orderId || ''}${timestamp}`;
         }
         
         const signature = crypto.createHmac('sha256', apiPassword).update(dataToSign).digest('base64');
         finalBody.signature = signature;
     }
 
-    // إعدادات افتراضية لإنشاء الجلسة
-    if (operation === 'createSession') {
-        finalBody.paymentOperation = finalBody.paymentOperation || "Pay";
-        finalBody.initiatedBy = finalBody.initiatedBy || "Internet";
-        finalBody.callbackUrl = finalBody.callbackUrl || "https://geideaa.netlify.app/";
-        finalBody.returnUrl = finalBody.returnUrl || "https://geideaa.netlify.app/";
-    }
-
     const authString = `${publicKey}:${apiPassword}`;
     const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
 
-    console.log(`[${operation}] Connecting to: ${MAIN_HOST}${finalPath}`);
-    // console.log(`Payload:`, JSON.stringify(finalBody));
+    console.log(`[${operation}] Connecting to: ${config.host}${finalPath}`);
+    console.log(`Payload:`, JSON.stringify(finalBody));
 
     const requestData = JSON.stringify(finalBody);
 
     const options = {
-      hostname: MAIN_HOST, // استخدام السيرفر السعودي الموحد
+      hostname: config.host,
       path: finalPath,
       method: config.method,
       headers: {
@@ -240,35 +290,23 @@ exports.handler = async (event, context) => {
              json._statusCode = res.statusCode; 
              resolve(json);
           } catch (e) {
-             // في حالة رجوع HTML أو نص عادي
              resolve({ _statusCode: res.statusCode, rawBody: body });
           }
         });
       });
-
-      req.on('error', (err) => {
-        console.error('Network Error:', err);
-        reject(err);
-      });
-
-      if (config.method !== 'GET') {
-        req.write(requestData);
-      }
+      req.on('error', (err) => reject(err));
+      if (config.method !== 'GET') req.write(requestData);
       req.end();
     });
 
     return {
-      statusCode: 200,
+      statusCode: 200, // نرجع دائماً 200 للفرونت، والخطأ الحقيقي داخل الجسم
       headers,
       body: JSON.stringify(responseBody)
     };
 
   } catch (error) {
-    console.error('System Error:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: error.message })
-    };
+    console.error(error);
+    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }
 };

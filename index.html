@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geidea System Diagnostics</title>
+    <title>Geidea System Diagnostics (KSA Edition)</title>
     
     <!-- مكتبة Geidea الرسمية -->
     <script src="https://ksamerchant.geidea.net/payment-intent/online/v1/geidea-checkout.min.js"></script>
@@ -29,65 +29,78 @@
         .status-warn { color: var(--yellow); }
         
         .details { margin-left: 70px; color: #888; font-size: 12px; white-space: pre-wrap; display: block; margin-top: 2px; }
-        .action-link { color: var(--blue); text-decoration: underline; cursor: pointer; margin-left: 10px; }
         
-        #copyBtn { position: absolute; top: 10px; right: 10px; background: #333; color: white; padding: 5px 10px; font-size: 12px; width: auto; border: 1px solid #555; }
+        #copyBtn { position: absolute; top: 10px; right: 10px; background: #333; color: white; padding: 5px 10px; font-size: 12px; width: auto; border: 1px solid #555; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Geidea Integration Diagnostics</h1>
+        <h1>Geidea Diagnostics (KSA 🇸🇦)</h1>
         
-        <button id="startBtn" onclick="runFullDiagnostics()">⚡ START ALL TESTS (فحص شامل)</button>
+        <button id="startBtn" onclick="runFullDiagnostics()">⚡ START SAUDI TESTS (فحص)</button>
         
         <div class="terminal-window">
             <button id="copyBtn" onclick="copyLogs()">Copy Logs</button>
             <div id="terminalOutput">
-                <div class="log-entry">> Ready to start. Click the button above...</div>
+                <div class="log-entry">> Ready (KSA Mode). Click Start...</div>
             </div>
         </div>
     </div>
 
     <script>
-        // قائمة العمليات التي سيتم اختبارها
+        // الرقم السعودي الموحد للاختبار (بدون مسافات)
+        const SAUDI_PHONE = "+966550063691";
+
+        // قائمة العمليات - تم إزالة ميزة (Meeza) وتحديث البيانات للسعودية
         const OPERATIONS = [
             { 
                 id: 'createSession', 
                 name: 'Checkout V2 Session', 
                 payload: { 
-                    amount: 100, currency: "SAR", paymentOperation: "Pay", 
-                    appearance: { uiMode: "modal" }, customer: { email: "test@test.com" } 
+                    amount: 100, 
+                    currency: "SAR", 
+                    paymentOperation: "Pay", 
+                    appearance: { uiMode: "modal" }, 
+                    customer: { 
+                        email: "test@geidea-ksa.com",
+                        phoneNumber: SAUDI_PHONE 
+                    } 
                 },
-                checkWindow: true // هل هذا الرابط يفتح نافذة؟
+                checkWindow: true 
             },
             { 
                 id: 'createQuickLink', 
-                name: 'Quick Payment Link', 
-                // تم إضافة phoneCountryCode لإصلاح الخطأ 400
+                name: 'Quick Payment Link (SMS)', 
                 payload: { 
-                    amount: 150, currency: "SAR", 
-                    customer: { name: "Test User", phoneNumber: "500000000", phoneCountryCode: "+966" } 
+                    amount: 150, 
+                    currency: "SAR", 
+                    customer: { 
+                        name: "KSA Customer", 
+                        phoneNumber: SAUDI_PHONE // تم التحديث للرقم السعودي
+                    } 
                 }
             },
             { 
                 id: 'createPaymentLink', 
                 name: 'Invoice Payment Link', 
-                // تم إضافة phoneCountryCode لإصلاح الخطأ 400
                 payload: { 
-                    amount: 200, currency: "SAR", 
-                    customer: { name: "Test Invoice", email: "inv@test.com", phoneNumber: "500000000", phoneCountryCode: "+966" },
-                    eInvoiceDetails: { subtotal: 200, grandTotal: 200, extraChargesType: "Amount", invoiceDiscountType: "Amount" }
+                    amount: 200, 
+                    currency: "SAR", 
+                    customer: { 
+                        name: "KSA Invoice", 
+                        email: "invoice@geidea-ksa.com",
+                        phoneNumber: SAUDI_PHONE 
+                    },
+                    eInvoiceDetails: { 
+                        subtotal: 200, 
+                        grandTotal: 200, 
+                        extraChargesType: "Amount", 
+                        invoiceDiscountType: "Amount" 
+                    }
                 }
             },
-            { 
-                id: 'createMeezaQR', 
-                name: 'Meeza QR Code', 
-                payload: { 
-                    sessionId: "AUTO", // سيتم ملؤه من الاختبار الأول
-                    customerEmail: "qr@test.com", customerPhoneCountryCode: "+20", source: "HPP" 
-                }
-            },
+            // تم حذف Meeza QR لأنه خاص بمصر ويسبب أخطاء مع الحسابات السعودية
             { 
                 id: 'saveCard', 
                 name: 'Save Card (Tokenization)', 
@@ -97,14 +110,22 @@
                 id: 'createSubscription', 
                 name: 'Create Subscription', 
                 payload: { 
-                    recurringPaymentAmount: 50, currency: "SAR", cycleInterval: "month", cycleFrequency: 12, 
-                    typeOfPayment: "RecurringPayment", isFirstPmtPBL: false, customerRequest: { email: "sub@test.com" } 
+                    recurringPaymentAmount: 50, 
+                    currency: "SAR", 
+                    cycleInterval: "month", 
+                    cycleFrequency: 12, 
+                    typeOfPayment: "RecurringPayment", 
+                    isFirstPmtPBL: false, 
+                    customerRequest: { 
+                        email: "sub@geidea-ksa.com",
+                        phoneNumber: SAUDI_PHONE
+                    } 
                 }
             }
         ];
 
         let logsText = "";
-        let lastSessionId = null; // لتمريره لاختبار Meeza
+        let lastSessionId = null;
 
         function log(message, type = 'info', details = null) {
             const term = document.getElementById('terminalOutput');
@@ -126,8 +147,6 @@
 
             term.innerHTML += html;
             term.scrollTop = term.scrollHeight;
-            
-            // حفظ للنص القابل للنسخ
             logsText += `[${time}] ${message}\n${details ? details + '\n' : ''}`;
         }
 
@@ -139,11 +158,10 @@
             term.innerHTML = "";
             logsText = "";
             
-            log("🚀 Starting Full Diagnostic Sequence...", "warn");
-            log(`ℹ️ Total Tests: ${OPERATIONS.length}`, "info");
+            log("🚀 Starting KSA Diagnostic Sequence...", "warn");
+            log(`ℹ️ Target Phone: ${SAUDI_PHONE}`, "info");
             log("---------------------------------------------------");
 
-            // التحقق من مكتبة JS
             if (typeof GeideaCheckout === 'undefined') {
                 log("❌ CRITICAL: Geidea JS Library NOT loaded! AdBlock?", "error");
             } else {
@@ -152,7 +170,7 @@
 
             for (let op of OPERATIONS) {
                 await runSingleTest(op);
-                await new Promise(r => setTimeout(r, 1000)); // تأخير بسيط لعدم الضغط
+                await new Promise(r => setTimeout(r, 1000));
             }
 
             log("---------------------------------------------------");
@@ -163,15 +181,7 @@
         async function runSingleTest(op) {
             log(`🔄 Testing: ${op.name} [${op.id}]...`, "info");
 
-            // تحديث البيانات ديناميكياً
             let currentPayload = { ...op.payload };
-            if (op.id === 'createMeezaQR' && lastSessionId) {
-                currentPayload.sessionId = lastSessionId;
-                log(`   -> Using SessionID from previous test: ${lastSessionId.substring(0, 8)}...`, "warn");
-            } else if (op.id === 'createMeezaQR' && !lastSessionId) {
-                log(`   -> Skipping Meeza QR (No Session ID available from previous tests)`, "error");
-                return;
-            }
 
             try {
                 const res = await fetch('/.netlify/functions/create-session', {
@@ -184,19 +194,15 @@
                 const status = data._statusCode || res.status;
 
                 if (status >= 200 && status < 300) {
-                    // نجاح
                     let detailMsg = `Status: ${status} OK`;
-                    
-                    // استخراج ID وحفظه
                     const sessId = data.session?.id || data.id;
+                    
                     if (sessId && op.id === 'createSession') {
                         lastSessionId = sessId;
-                        detailMsg += `\n🆔 Session ID Received: ${sessId}`;
+                        detailMsg += `\n🆔 Session ID: ${sessId}`;
                         
-                        // اختبار إمكانية فتح النافذة
                         if (op.checkWindow) {
-                            detailMsg += `\n✅ Payment Window: READY (Can be opened)`;
-                            // إضافة زر للتجربة اليدوية
+                            detailMsg += `\n✅ Window Ready`;
                             setTimeout(() => {
                                 const btnId = `btn-${sessId.substring(0,8)}`;
                                 const term = document.getElementById('terminalOutput');
@@ -204,17 +210,21 @@
                             }, 100);
                         }
                     }
-
-                    // التحقق من QR Code
-                    if (data.image && op.id === 'createMeezaQR') {
-                        detailMsg += `\n✅ QR Image Generated (Base64 received)`;
+                    
+                    // طباعة الرابط إذا تم إنشاؤه بنجاح
+                    if (data.paymentUrl) {
+                        detailMsg += `\n🔗 URL: ${data.paymentUrl}`;
                     }
 
                     log(`✅ ${op.name}: SUCCESS`, "success", detailMsg);
 
                 } else {
-                    // فشل من Geidea
-                    let errorMsg = data.detailedResponseMessage || data.responseMessage || data.title || "Unknown Error";
+                    let errorMsg = JSON.stringify(data);
+                    // محاولة استخراج رسالة الخطأ بدقة
+                    if (data.detailedResponseMessage) errorMsg = data.detailedResponseMessage;
+                    else if (data.responseMessage) errorMsg = data.responseMessage;
+                    else if (data.errors) errorMsg = JSON.stringify(data.errors);
+                    
                     log(`❌ ${op.name}: FAILED (${status})`, "error", `Server Msg: ${errorMsg}\nPayload: ${JSON.stringify(currentPayload)}`);
                 }
 
