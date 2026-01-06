@@ -1,17 +1,10 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Pen - المحفظة والدفع</title>
+    <title>شحن المحفظة - اختيار المبلغ</title>
     
-    <!-- خط تجوال من جوجل -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- أيقونات FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- مكتبة Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
     <!-- Geidea Script -->
     <script src="geideaCheckout.min.js" onerror="loadExternalScript()"></script>
     <script>
@@ -22,455 +15,130 @@
             document.head.appendChild(script);
         }
     </script>
-
+    
     <style>
-        /* --- إعدادات التصميم العامة (Smart Pen Design) --- */
-        body {
-            font-family: 'Tajawal', sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            min-height: 100vh;
-            margin: 0;
-            overflow-x: hidden;
-        }
-
-        h1, h2, h3 { font-weight: bold; }
-
-        /* تنسيق الأزرار الأساسية */
-        button {
-            border-radius: 20px;
-            border: 1px solid #2a5298;
-            background-color: #2a5298;
-            color: #FFFFFF;
-            font-size: 12px;
-            font-weight: bold;
-            padding: 12px 45px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            transition: transform 80ms ease-in, background-color 0.3s;
-            cursor: pointer;
-            font-family: 'Tajawal', sans-serif;
-            margin-top: 10px;
-        }
-
-        button:active { transform: scale(0.95); }
-        button:focus { outline: none; }
-        button:disabled { background-color: #ccc; border-color: #ccc; cursor: not-allowed; }
-
-        button.ghost {
-            background-color: transparent;
-            border-color: #FFFFFF;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 420px; text-align: center; transition: all 0.3s ease; }
         
-        button.ghost:hover { background-color: rgba(255, 255, 255, 0.2); }
+        /* Profile & Data Styles */
+        .data-card { display: none; text-align: right; animation: fadeIn 0.5s; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-top: 20px; }
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .data-row:last-child { border-bottom: none; }
+        .data-label { color: #666; font-size: 0.9em; }
+        .data-value { font-weight: bold; color: #333; font-family: monospace; font-size: 1.1em; }
+        
+        .balance-box { background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); color: white; padding: 20px; border-radius: 10px; margin: 20px 0 10px 0; text-align: center; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
+        .balance-amount { font-size: 32px; font-weight: bold; display: block; margin-top: 5px; }
+        .balance-label { font-size: 0.9em; opacity: 0.9; }
 
-        /* --- تنسيق أزرار اختيار المبلغ (مدمج مع تصميم Smart Pen) --- */
-        .amount-selector { margin-top: 20px; text-align: right; width: 100%; }
-        .amount-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; direction: ltr; }
+        /* Amount Selection Styles */
+        .amount-selector { margin-top: 20px; text-align: right; }
+        .amount-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; }
+        .amt-btn { background: #fff; border: 1px solid #ddd; padding: 10px 5px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: bold; color: #555; font-size: 14px; }
+        .amt-btn:hover { background: #f9f9f9; border-color: #bbb; }
+        .amt-btn.active { background: #e8f5e9; color: #2e7d32; border-color: #4caf50; box-shadow: 0 0 0 1px #4caf50; }
         
-        .amt-btn { 
-            background: #f8fafc; 
-            border: 2px solid #e2e8f0; 
-            padding: 10px 5px; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            transition: all 0.2s; 
-            font-weight: bold; 
-            color: #64748b; 
-            font-size: 14px;
-            margin-top: 0; /* Override default button margin */
-            text-transform: none; /* Override uppercase */
-            letter-spacing: 0;
-            width: 100%;
-        }
-        
-        .amt-btn:hover { 
-            border-color: #2a5298; 
-            color: #2a5298; 
-            background: #fff;
-        }
-        
-        .amt-btn.active { 
-            background: #2a5298; 
-            color: #fff; 
-            border-color: #2a5298; 
-            box-shadow: 0 4px 6px -1px rgba(42, 82, 152, 0.3);
-            transform: scale(1.05);
-        }
-
         .custom-input-wrapper { position: relative; margin-top: 10px; }
-        .custom-input-wrapper input { 
-            width: 100%; 
-            padding: 12px; 
-            border: 2px solid #e2e8f0; 
-            border-radius: 12px; 
-            box-sizing: border-box; 
-            font-size: 16px; 
-            text-align: center; 
-            font-weight: bold; 
-            transition: 0.3s; 
-            background: #f8fafc;
-            color: #1e293b;
-        }
-        .custom-input-wrapper input:focus { 
-            border-color: #2a5298; 
-            outline: none; 
-            background: #fff; 
-            box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
-        }
-        .currency-suffix { 
-            position: absolute; 
-            left: 15px; 
-            top: 50%; 
-            transform: translateY(-50%); 
-            color: #94a3b8; 
-            font-size: 12px; 
-            pointer-events: none; 
-        }
+        .custom-input-wrapper input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; text-align: center; font-weight: bold; transition: 0.3s; }
+        .custom-input-wrapper input:focus { border-color: #4caf50; outline: none; background: #fff; }
+        .currency-suffix { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999; font-size: 12px; pointer-events: none; }
 
-        /* --- تنسيق نماذج الدخول --- */
-        form {
-            background-color: #FFFFFF;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            padding: 0 50px;
-            height: 100%;
-            text-align: center;
-            direction: rtl;
-        }
-
-        input.auth-input {
-            background-color: #eee;
-            border: none;
-            padding: 12px 15px;
-            margin: 8px 0;
-            width: 100%;
-            border-radius: 8px;
-            outline: none;
-            transition: 0.3s;
-            font-family: 'Tajawal', sans-serif;
-            text-align: right;
-        }
+        /* Form Styles */
+        h2 { color: #333; margin-top: 0; }
+        .login-input { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; background: #f9f9f9; }
         
-        input.auth-input:focus { background-color: #e0e0e0; box-shadow: 0 0 0 2px rgba(42, 82, 152, 0.2); }
-
-        /* الحاوية الرئيسية (تسجيل الدخول) */
-        .auth-container {
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
-            position: relative;
-            overflow: hidden;
-            width: 850px;
-            max-width: 95%;
-            min-height: 550px;
-            direction: ltr; 
-            transition: opacity 0.5s ease;
-        }
-
-        .form-container {
-            position: absolute;
-            top: 0;
-            height: 100%;
-            transition: all 0.6s ease-in-out;
-        }
-
-        .sign-in-container { left: 0; width: 50%; z-index: 2; }
-        .sign-up-container { left: 0; width: 50%; opacity: 0; z-index: 1; }
-
-        .auth-container.right-panel-active .sign-in-container { transform: translateX(100%); }
-        .auth-container.right-panel-active .sign-up-container {
-            transform: translateX(100%);
-            opacity: 1;
-            z-index: 5;
-            animation: show 0.6s;
-        }
-
-        @keyframes show {
-            0%, 49.99% { opacity: 0; z-index: 1; }
-            50%, 100% { opacity: 1; z-index: 5; }
-        }
-
-        .overlay-container {
-            position: absolute;
-            top: 0;
-            left: 50%;
-            width: 50%;
-            height: 100%;
-            overflow: hidden;
-            transition: transform 0.6s ease-in-out;
-            z-index: 100;
-        }
-
-        .auth-container.right-panel-active .overlay-container{ transform: translateX(-100%); }
-
-        .overlay {
-            background: #2a5298;
-            background: linear-gradient(to right, #1e3c72, #2a5298);
-            background-repeat: no-repeat;
-            background-size: cover;
-            background-position: 0 0;
-            color: #FFFFFF;
-            position: relative;
-            left: -100%;
-            height: 100%;
-            width: 200%;
-            transform: translateX(0);
-            transition: transform 0.6s ease-in-out;
-        }
-
-        .auth-container.right-panel-active .overlay { transform: translateX(50%); }
-
-        .overlay-panel {
-            position: absolute;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            padding: 0 40px;
-            text-align: center;
-            top: 0;
-            height: 100%;
-            width: 50%;
-            transform: translateX(0);
-            transition: transform 0.6s ease-in-out;
-            direction: rtl;
-        }
-
-        .overlay-left { transform: translateX(-20%); }
-        .auth-container.right-panel-active .overlay-left { transform: translateX(0); }
-        .overlay-right { right: 0; transform: translateX(0); }
-        .auth-container.right-panel-active .overlay-right { transform: translateX(20%); }
-
-        .logo-img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 50%;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        /* --- تنسيق لوحة التحكم (المحفظة) --- */
-        .dashboard-container {
-            display: none; /* مخفي افتراضياً */
-            background-color: #fff;
-            border-radius: 20px;
-            box-shadow: 0 14px 28px rgba(0,0,0,0.25);
-            width: 450px;
-            max-width: 95%;
-            padding: 30px;
-            text-align: center;
-            direction: rtl;
-            animation: fadeIn 0.5s ease-in-out;
-            position: relative;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .wallet-card {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            border-radius: 15px;
-            padding: 25px;
-            color: white;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 20px rgba(30, 60, 114, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
+        /* Buttons */
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; margin-top: 15px; position: relative; }
+        .btn-primary { background: #333; color: white; }
+        .btn-primary:hover { background: #000; }
+        .btn-success { background: #4caf50; color: white; margin-top: 15px; }
+        .btn-success:hover { background: #43a047; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
         
-        .wallet-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
-            transform: rotate(30deg);
-        }
-
-        .balance-title { font-size: 14px; opacity: 0.8; }
-        .balance-amount { font-size: 36px; font-weight: bold; margin: 10px 0; }
-        .currency { font-size: 16px; margin-right: 5px; }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-        .info-label { color: #666; }
-        .info-value { font-weight: bold; color: #333; }
-
-        .loader {
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top: 3px solid #fff;
-            width: 16px;
-            height: 16px;
-            animation: spin 1s linear infinite;
-            display: none;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-
+        .status { margin-top: 15px; font-size: 14px; color: #666; min-height: 20px; text-align: center; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #555; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: none; vertical-align: middle; position: absolute; left: 20px; top: 14px; }
+        
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* التجاوب مع الموبايل */
-        @media (max-width: 768px) {
-            .auth-container {
-                width: 90%;
-                min-height: 650px;
-                display: flex;
-                flex-direction: column;
-                direction: rtl;
-            }
-            .form-container { width: 100%; position: absolute; height: 100%; top: 0; left: 0; right: 0; }
-            .sign-in-container { z-index: 2; opacity: 1; width: 100%; }
-            .sign-up-container { opacity: 0; z-index: 1; width: 100%; transform: none; }
-            .overlay-container { display: none; }
-            
-            .auth-container.right-panel-active .sign-in-container { opacity: 0; z-index: 1; transform: none; }
-            .auth-container.right-panel-active .sign-up-container { opacity: 1; z-index: 5; animation: fadeIn 0.5s; transform: none; }
-            
-            .mobile-toggle { display: block; margin-top: 20px; color: #2a5298; cursor: pointer; font-weight: bold; text-decoration: underline; }
-        }
-        @media (min-width: 769px) { .mobile-toggle { display: none; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <!-- قسم المصادقة (دخول/تسجيل) -->
-    <div class="auth-container" id="authContainer">
-        <!-- نموذج إنشاء حساب -->
-        <div class="form-container sign-up-container">
-            <form id="registerForm">
-                <img src="pen.jpeg" alt="Smart Pen" class="logo-img">
-                <h1 class="text-2xl font-bold text-[#1e3c72]">Smart Pen</h1>
-                <h2 class="text-lg mb-2 text-gray-600">بوابة الدفع</h2>
-                <span class="text-gray-500 mb-4 font-bold">إنشاء حساب جديد</span>
-                
-                <input type="text" id="signup-name" class="auth-input" placeholder="الاسم الكامل" required />
-                <input type="email" id="signup-email" class="auth-input" placeholder="البريد الإلكتروني" required />
-                <input type="password" id="signup-password" class="auth-input" placeholder="كلمة المرور" required />
-                
-                <button type="submit" id="signup-btn" class="mt-4 shadow-lg hover:shadow-xl flex items-center justify-center">
-                    تسجيل ومتابعة
-                    <span class="loader" id="signup-loader"></span>
-                </button>
-                <p class="mobile-toggle" onclick="toggleMobile()">لديك حساب؟ تسجيل الدخول</p>
-            </form>
+    <div class="container">
+        
+        <!-- قسم تسجيل الدخول -->
+        <div id="loginSection">
+            <h2>تسجيل الدخول</h2>
+            <p style="color:#777; font-size:0.9em;">سجل الدخول لشحن رصيدك</p>
+            
+            <input type="text" id="name" class="login-input" placeholder="الاسم (للمستخدمين الجدد)">
+            <input type="email" id="email" class="login-input" placeholder="البريد الإلكتروني">
+            <input type="password" id="password" class="login-input" placeholder="كلمة المرور">
+            
+            <button class="btn btn-primary" id="loginBtn" onclick="handleAuth()">
+                دخول / تسجيل
+                <span class="loader" id="loginLoader"></span>
+            </button>
         </div>
 
-        <!-- نموذج تسجيل الدخول -->
-        <div class="form-container sign-in-container">
-            <form id="loginForm">
-                <img src="pen.jpeg" alt="Smart Pen" class="logo-img">
-                <h1 class="text-2xl font-bold text-[#1e3c72]">Smart Pen</h1>
-                <h2 class="text-lg mb-2 text-gray-600">بوابة الدفع</h2>
-                <span class="text-gray-500 mb-4 font-bold">تسجيل الدخول لإتمام الدفع</span>
-                
-                <input type="email" id="signin-email" class="auth-input" placeholder="البريد الإلكتروني" required />
-                <input type="password" id="signin-password" class="auth-input" placeholder="كلمة المرور" required />
-                
-                <a href="#" class="text-xs">هل نسيت كلمة المرور؟</a>
-                <button type="submit" id="signin-btn" class="mt-2 shadow-lg hover:shadow-xl flex items-center justify-center">
-                    دخول آمن
-                    <span class="loader" id="signin-loader"></span>
-                </button>
-                <p class="mobile-toggle" onclick="toggleMobile()">جديد هنا؟ إنشاء حساب</p>
-            </form>
-        </div>
+        <!-- قسم البيانات والمحفظة (يظهر بعد الدخول) -->
+        <div id="profileSection" style="display: none;">
+            <h2>محفظتي</h2>
+            
+            <!-- صندوق الرصيد -->
+            <div class="balance-box">
+                <span class="balance-label">الرصيد الحالي</span>
+                <span class="balance-amount" id="displayBalance">0.00 <small>SAR</small></span>
+            </div>
 
-        <!-- اللوحة المتحركة -->
-        <div class="overlay-container">
-            <div class="overlay">
-                <div class="overlay-panel overlay-left">
-                    <h1 class="text-3xl mb-4 font-bold">مرحباً مجدداً!</h1>
-                    <p>لإتمام عملية الدفع، يرجى تسجيل الدخول</p>
-                    <button class="ghost" id="signIn">تسجيل الدخول</button>
+            <!-- اختيار المبلغ -->
+            <div class="amount-selector">
+                <p class="data-label" style="margin-bottom: 5px;">كم تريد أن تشحن؟</p>
+                <div class="amount-grid">
+                    <button class="amt-btn" onclick="selectAmount(50)">50</button>
+                    <button class="amt-btn active" onclick="selectAmount(100)">100</button>
+                    <button class="amt-btn" onclick="selectAmount(200)">200</button>
+                    <button class="amt-btn" onclick="selectAmount(500)">500</button>
                 </div>
-                <div class="overlay-panel overlay-right">
-                    <h1 class="text-3xl mb-4 font-bold">بوابة الدفع الآمنة</h1>
-                    <p>أدخل بياناتك لإنشاء حساب والبدء في الاستفادة من خدماتنا</p>
-                    <button class="ghost" id="signUp">إنشاء حساب</button>
+                <div class="custom-input-wrapper">
+                    <input type="number" id="customAmount" placeholder="أو أدخل مبلغاً آخر" oninput="handleCustomInput(this)">
+                    <span class="currency-suffix">SAR</span>
                 </div>
             </div>
+
+            <button class="btn btn-success" id="payBtn" onclick="initiateTopUp()">
+                شحن رصيد (100 ر.س)
+                <span class="loader" id="payLoader"></span>
+            </button>
+
+            <!-- تفاصيل البيانات التقنية -->
+            <div class="data-card">
+                <div class="data-row">
+                    <span class="data-label">الاسم المسجل</span>
+                    <span class="data-value" id="displayName">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">User ID</span>
+                    <span class="data-value" id="displayUid" style="font-size: 0.8em;">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">حالة الحساب</span>
+                    <span class="data-value" id="displayStatus" style="color: #666;">مجاني</span>
+                </div>
+            </div>
+            
+            <button class="btn" style="background:transparent; color:#888; margin-top:5px; font-weight:normal; font-size:14px;" onclick="location.reload()">تسجيل خروج</button>
         </div>
+
+        <div id="statusMessage" class="status"></div>
     </div>
 
-    <!-- قسم المحفظة (يظهر بعد الدخول) -->
-    <div class="dashboard-container" id="dashboardContainer">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold text-gray-800">محفظتي</h2>
-            <button onclick="location.reload()" class="text-red-500 hover:text-red-700 bg-transparent border-0 p-0 text-sm font-bold m-0" style="padding:0; width:auto; border:none;">خروج <i class="fas fa-sign-out-alt mr-1"></i></button>
-        </div>
-
-        <!-- كارت الرصيد -->
-        <div class="wallet-card">
-            <div class="balance-title">الرصيد الحالي</div>
-            <div class="balance-amount" id="displayBalance">0.00</div>
-            <span class="currency">SAR</span>
-        </div>
-
-        <!-- بيانات المستخدم -->
-        <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-100">
-            <div class="info-row">
-                <span class="info-label">الاسم</span>
-                <span class="info-value" id="displayName">--</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">المعرف (UID)</span>
-                <span class="info-value text-xs font-mono mt-1" id="displayUid">--</span>
-            </div>
-            <div class="info-row border-none">
-                <span class="info-label">الحالة</span>
-                <span class="info-value" id="displayStatus">مجاني</span>
-            </div>
-        </div>
-
-        <!-- اختيار المبلغ (التصميم الجديد) -->
-        <div class="amount-selector">
-            <p class="text-sm font-bold text-gray-600 mb-2">اختر مبلغ الشحن:</p>
-            <div class="amount-grid">
-                <button class="amt-btn" onclick="selectAmount(50)">50</button>
-                <button class="amt-btn active" onclick="selectAmount(100)">100</button>
-                <button class="amt-btn" onclick="selectAmount(200)">200</button>
-                <button class="amt-btn" onclick="selectAmount(500)">500</button>
-            </div>
-            <div class="custom-input-wrapper">
-                <input type="number" id="customAmount" placeholder="مبلغ آخر" oninput="handleCustomInput(this)">
-                <span class="currency-suffix">SAR</span>
-            </div>
-        </div>
-
-        <!-- زر الشحن -->
-        <button id="payBtn" class="w-full bg-green-600 hover:bg-green-700 border-green-600 text-white shadow-lg flex items-center justify-center gap-2 py-4 mt-6">
-            <i class="fas fa-wallet ml-2"></i>
-            <span id="payBtnText">شحن رصيد (100 ر.س)</span>
-            <span class="loader" id="payLoader"></span>
-        </button>
-
-        <div id="statusMessage" class="mt-4 text-sm font-bold text-gray-600"></div>
-    </div>
-
-    <!-- منطق Firebase والتطبيق -->
+    <!-- Firebase Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // إعدادات Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyA6WQKgXjdqe3ghQEQ5EXAMZM7ffiWlabk",
             authDomain: "ai-roadmap-jnadeem.firebaseapp.com",
@@ -485,29 +153,25 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // متغيرات واجهة المستخدم
-        const authContainer = document.getElementById('authContainer');
-        const dashboardContainer = document.getElementById('dashboardContainer');
-        const statusDiv = document.getElementById('statusMessage');
-        const signUpButton = document.getElementById('signUp');
-        const signInButton = document.getElementById('signIn');
-        let currentUser = null;
-
         // --- منطق اختيار المبلغ ---
-        let selectedAmount = 100;
+        let selectedAmount = 100; // القيمة الافتراضية
 
         window.selectAmount = (amount) => {
             selectedAmount = amount;
+            // تحديث شكل الأزرار
             document.querySelectorAll('.amt-btn').forEach(btn => {
                 const isActive = parseInt(btn.innerText) === amount;
                 btn.classList.toggle('active', isActive);
             });
+            // تفريغ الحقل المخصص
             document.getElementById('customAmount').value = '';
             updatePayButtonText();
         }
 
         window.handleCustomInput = (input) => {
+            // إزالة التنشيط من جميع الأزرار الجاهزة
             document.querySelectorAll('.amt-btn').forEach(btn => btn.classList.remove('active'));
+            
             const val = parseFloat(input.value);
             if (val && val > 0) {
                 selectedAmount = val;
@@ -518,186 +182,194 @@
         }
 
         function updatePayButtonText() {
-            const btnText = document.getElementById('payBtnText');
             const btn = document.getElementById('payBtn');
+            const loaderHtml = '<span class="loader" id="payLoader"></span>';
             
             if (selectedAmount > 0) {
-                btnText.innerText = `شحن رصيد (${selectedAmount} ر.س)`;
+                btn.innerHTML = `شحن رصيد (${selectedAmount} ر.س) ${loaderHtml}`;
                 btn.disabled = false;
-                btn.classList.remove('bg-gray-400', 'border-gray-400');
-                btn.classList.add('bg-green-600', 'border-green-600', 'hover:bg-green-700');
             } else {
-                btnText.innerText = `الرجاء تحديد مبلغ`;
+                btn.innerHTML = `الرجاء تحديد مبلغ ${loaderHtml}`;
                 btn.disabled = true;
-                btn.classList.remove('bg-green-600', 'border-green-600', 'hover:bg-green-700');
-                btn.classList.add('bg-gray-400', 'border-gray-400');
             }
         }
+        // ------------------------
 
-        // --- مراقبة حالة المستخدم ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                await handleSuccessLogin();
-            } else {
-                currentUser = null;
-                authContainer.style.display = 'block';
-                dashboardContainer.style.display = 'none';
-            }
-        });
-
-        // --- تبديل الواجهة (Sliding Panel) ---
-        signUpButton.addEventListener('click', () => authContainer.classList.add("right-panel-active"));
-        signInButton.addEventListener('click', () => authContainer.classList.remove("right-panel-active"));
+        // UI Refs
+        const loginSection = document.getElementById('loginSection');
+        const profileSection = document.getElementById('profileSection');
+        const statusDiv = document.getElementById('statusMessage');
         
-        window.toggleMobile = () => {
-            authContainer.classList.toggle("right-panel-active");
+        let currentUser = null;
+
+        window.handleAuth = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const name = document.getElementById('name').value;
+            const btn = document.getElementById('loginBtn');
+            const loader = document.getElementById('loginLoader');
+
+            if(!email || !password) {
+                showStatus("الرجاء إدخال البريد وكلمة المرور", "red");
+                return;
+            }
+
+            btn.disabled = true;
+            loader.style.display = "block";
+            showStatus("جاري التحقق...", "blue");
+
+            try {
+                let userCredential;
+                try {
+                    userCredential = await signInWithEmailAndPassword(auth, email, password);
+                } catch (error) {
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                        if (!name) throw new Error("مستخدم جديد؟ أدخل اسمك لإنشاء حساب.");
+                        showStatus("حساب جديد، جاري الإنشاء...", "blue");
+                        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                        await createInitialUserDoc(userCredential.user, name);
+                    } else {
+                        throw error;
+                    }
+                }
+
+                currentUser = userCredential.user;
+                await loadUserProfile(currentUser.uid);
+                
+                loginSection.style.display = "none";
+                profileSection.style.display = "block";
+                statusDiv.innerText = "";
+
+            } catch (err) {
+                console.error(err);
+                showStatus(err.message, "red");
+                btn.disabled = false;
+                loader.style.display = "none";
+            }
         };
 
-        // --- تسجيل الدخول وإنشاء الحساب ---
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('signin-email').value;
-            const password = document.getElementById('signin-password').value;
-            toggleLoader(true);
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                alert("خطأ: " + error.message);
-                toggleLoader(false);
-            }
-        });
-
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('signup-name').value;
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            
-            if (!name) { alert("يرجى إدخال الاسم"); return; }
-            toggleLoader(true);
-            try {
-                const cred = await createUserWithEmailAndPassword(auth, email, password);
-                await setDoc(doc(db, "users", cred.user.uid), {
-                    uid: cred.user.uid,
-                    email: cred.user.email,
-                    displayName: name,
-                    walletBalance: 0,
-                    isPremium: false,
-                    createdAt: serverTimestamp()
-                });
-            } catch (error) {
-                alert("خطأ: " + error.message);
-                toggleLoader(false);
-            }
-        });
-
-        async function handleSuccessLogin() {
-            authContainer.style.display = 'none';
-            dashboardContainer.style.display = 'block';
-            await loadUserProfile(currentUser.uid);
+        async function createInitialUserDoc(user, displayName) {
+            const userRef = doc(db, "users", user.uid);
+            await setDoc(userRef, {
+                uid: user.uid,
+                email: user.email,
+                displayName: displayName,
+                walletBalance: 0,
+                isPremium: false,
+                createdAt: serverTimestamp()
+            });
         }
 
         async function loadUserProfile(uid) {
-            try {
-                const snap = await getDoc(doc(db, "users", uid));
-                if (snap.exists()) {
-                    const data = snap.data();
-                    document.getElementById('displayUid').innerText = data.uid.substring(0, 15) + "...";
-                    document.getElementById('displayName').innerText = data.displayName || "مستخدم";
-                    document.getElementById('displayBalance').innerText = (data.walletBalance || 0).toFixed(2);
-                    if(data.isPremium) {
-                        const s = document.getElementById('displayStatus');
-                        s.innerText = "Premium"; s.style.color = "#d4af37"; s.style.fontWeight = "bold";
-                    }
+            const docRef = doc(db, "users", uid);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                document.getElementById('displayUid').innerText = data.uid;
+                document.getElementById('displayName').innerText = data.displayName || "مستخدم";
+                document.getElementById('displayBalance').innerHTML = `${data.walletBalance.toFixed(2)} <small>SAR</small>`;
+                
+                if(data.isPremium) {
+                    document.getElementById('displayStatus').innerText = "عضوية ذهبية";
+                    document.getElementById('displayStatus').style.color = "#d4af37";
+                    document.getElementById('displayStatus').style.fontWeight = "bold";
                 }
-            } catch (e) { console.error(e); }
+            }
         }
 
-        // --- عملية الدفع (باستخدام الرابط الكامل والمنطق المحدث) ---
-        document.getElementById('payBtn').addEventListener('click', async () => {
+        // دالة الشحن المحدثة لتستخدم selectedAmount
+        window.initiateTopUp = async () => {
             if(!currentUser) return;
-            if(!selectedAmount || selectedAmount <= 0) { alert("مبلغ غير صحيح"); return; }
-
+            if(!selectedAmount || selectedAmount <= 0) {
+                alert("الرجاء اختيار مبلغ صحيح");
+                return;
+            }
+            
             const btn = document.getElementById('payBtn');
             const loader = document.getElementById('payLoader');
+            // حفظ القيمة الحالية لتجنب تغييرها أثناء العملية
             const amountToCharge = selectedAmount;
 
-            toggleLoader(true, loader);
-            updateStatus(`جاري الاتصال للدفع (${amountToCharge} SAR)...`, "blue");
+            btn.disabled = true;
+            loader.style.display = "block";
+            showStatus("جاري الاتصال...", "blue");
 
             try {
-                // استخدام الرابط الكامل الذي قدمته
-                const response = await fetch('https://jocular-shortbread-17b12c.netlify.app/.netlify/functions/create-payment-session', {
+                const requestPayload = {
+                    operation: 'createSession',
+                    payload: {
+                        amount: amountToCharge, // القيمة الديناميكية
+                        currency: "SAR",
+                        paymentOperation: "Pay",
+                        appearance: { uiMode: "modal" },
+                        customer: { email: currentUser.email },
+                        merchantReferenceId: currentUser.uid
+                    }
+                };
+
+                const response = await fetch('/.netlify/functions/create-payment-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        operation: 'createSession',
-                        payload: {
-                            amount: amountToCharge,
-                            currency: "SAR",
-                            paymentOperation: "Pay",
-                            appearance: { uiMode: "modal" },
-                            customer: { email: currentUser.email },
-                            merchantReferenceId: currentUser.uid
-                        }
-                    })
+                    body: JSON.stringify(requestPayload)
                 });
 
-                if (!response.ok) throw new Error(`Server Error: ${response.status}`);
-                
+                if (response.status === 404) throw new Error("لم يتم العثور على دالة الدفع");
+
                 const data = await response.json();
 
                 if (data.session && data.session.id) {
-                    updateStatus("نافذة الدفع جاهزة...", "green");
+                    showStatus("نافذة الدفع جاهزة...", "green");
+                    
                     if (typeof GeideaCheckout === 'undefined') throw new Error("مكتبة الدفع غير محملة");
 
                     const payment = new GeideaCheckout(
                         async function(success) {
-                            updateStatus("✅ تم الدفع! جاري التحديث...", "blue");
-                            await updateDoc(doc(db, "users", currentUser.uid), {
+                            showStatus("✅ تم الدفع! تحديث الرصيد...", "blue");
+                            
+                            const userRef = doc(db, "users", currentUser.uid);
+                            await updateDoc(userRef, {
                                 walletBalance: increment(amountToCharge),
                                 isPremium: true,
                                 lastPaymentDate: serverTimestamp()
                             });
+
                             await loadUserProfile(currentUser.uid);
-                            updateStatus("تم الشحن بنجاح!", "green");
-                            toggleLoader(false, loader);
+                            showStatus("تم الشحن بنجاح!", "green");
+                            
+                            // إعادة تعيين الزر
+                            btn.disabled = false;
+                            loader.style.display = "none";
+                            // لا نعيد النص للأصل حتى يرى المستخدم المبلغ الذي دفعه، أو يمكن تحديثه يدوياً
+                            updatePayButtonText(); 
                         },
                         function(err) {
-                            updateStatus("❌ فشل الدفع", "red");
-                            toggleLoader(false, loader);
+                            showStatus("❌ فشل الدفع", "red");
+                            btn.disabled = false;
+                            loader.style.display = "none";
                         },
                         function() {
-                            updateStatus("⚠️ تم إلغاء العملية", "orange");
-                            toggleLoader(false, loader);
+                            showStatus("⚠️ تم الإلغاء", "orange");
+                            btn.disabled = false;
+                            loader.style.display = "none";
                         }
                     );
+
                     payment.startPayment(data.session.id);
+
                 } else {
                     throw new Error(data.detailedResponseMessage || "فشل إنشاء الجلسة");
                 }
+
             } catch (err) {
                 console.error(err);
-                updateStatus(err.message, "red");
-                toggleLoader(false, loader);
+                showStatus(err.message, "red");
+                btn.disabled = false;
+                loader.style.display = "none";
             }
-        });
+        };
 
-        function toggleLoader(isLoading, specificLoader) {
-            const loaders = document.querySelectorAll('.loader');
-            const btns = document.querySelectorAll('button[type="submit"], #payBtn');
-            
-            btns.forEach(b => b.disabled = isLoading);
-            
-            if (specificLoader) {
-                specificLoader.style.display = isLoading ? "inline-block" : "none";
-            } else {
-                loaders.forEach(l => l.style.display = "none"); // Reset all
-            }
-        }
-
-        function updateStatus(msg, color) {
+        function showStatus(msg, color) {
             statusDiv.innerText = msg;
             statusDiv.style.color = color || "black";
         }
