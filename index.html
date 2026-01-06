@@ -26,7 +26,7 @@
 <body>
 
     <div class="container">
-        <h1>Geidea Diagnostics (KSA 🇸🇦 Fixed)</h1>
+        <h1>Geidea Diagnostics (KSA 🇸🇦 Final)</h1>
         
         <button id="startBtn" onclick="runFullDiagnostics()">⚡ START SAUDI TESTS</button>
         
@@ -86,6 +86,7 @@
                         phoneNumber: SAUDI_PHONE_NUMBER,
                         phoneCountryCode: SAUDI_COUNTRY_CODE
                     },
+                    // القائمة تحتوي منتج قيمته 200
                     eInvoiceItems: [
                         {
                             item: "Test Product",
@@ -97,9 +98,9 @@
                         }
                     ],
                     eInvoiceDetails: { 
-                        // FIX: السيرفر يطلب صراحة أن تكون هذه القيم 0
-                        subtotal: 0, 
-                        grandTotal: 0, 
+                        // الآن يجب أن تتطابق المجاميع مع قيمة المنتج (200)
+                        subtotal: 200, 
+                        grandTotal: 200, 
                         extraChargesType: "Amount", 
                         invoiceDiscountType: "Amount" 
                     }
@@ -163,7 +164,7 @@
             term.innerHTML = "";
             logsText = "";
             
-            log("🚀 Starting KSA Diagnostic Sequence (FIXED)...", "warn");
+            log("🚀 Starting KSA Diagnostic Sequence (FINAL)...", "warn");
             log(`ℹ️ Phone: ${SAUDI_COUNTRY_CODE}-${SAUDI_PHONE_NUMBER}`, "info");
             log("---------------------------------------------------");
 
